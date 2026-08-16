@@ -1,0 +1,234 @@
+/* ── Akshar Khel · screens and overlays ────────────────────────────────── */
+
+/* One screen at a time. No tabs, no bottom bar, no sticky stack — the shipped
+   app kept three sticky layers at top:0/64px/126px, which ate ~130px of a
+   small phone and had to be re-tuned by hand whenever a row changed height. */
+.screen{ display:none; flex:1; flex-direction:column; min-height:0 }
+#app[data-screen="home"]   .screen--home,
+#app[data-screen="grid"]   .screen--grid,
+#app[data-screen="listen"] .screen--listen,
+#app[data-screen="trace"]  .screen--trace,
+#app[data-screen="shloka"] .screen--shloka{ display:flex }
+
+/* Only the grid and shloka screens scroll. Child-facing play screens fit. */
+.scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch }
+
+/* ── 03 listen ─────────────────────────────────────────────────────────── */
+.listen{
+  display:flex; flex-direction:column; align-items:center;
+  gap:clamp(8px,1.8vh,16px); text-align:center;
+}
+.listen__glyph{
+  font:400 clamp(96px,30vw,190px)/.95 var(--track-font); color:var(--track-color);
+}
+.listen__sound{ font:400 15px var(--face-mono); color:var(--peacock) }
+/* 8:5 frame — the slot a commissioned illustration drops into as
+   /art/<track>/<glyph>.svg. Emoji fill it until then. */
+.listen__art{
+  width:min(280px,72vw); aspect-ratio:8/5; border-radius:var(--r-frame);
+  border:1px solid var(--line); background:var(--card);
+  display:flex; align-items:center; justify-content:center;
+  font-size:clamp(56px,18vw,96px); line-height:1;
+}
+.listen__art:empty{ display:none }
+.listen__keyword{ font:400 clamp(24px,7vw,34px)/1.2 var(--track-font); color:var(--ink) }
+.listen__note{ margin:0; font:400 13px var(--face-ui); color:var(--ink-4) }
+.listen__note:empty{ display:none }
+
+.cta-row{
+  display:flex; gap:clamp(16px,6vw,28px); justify-content:center;
+  align-items:center; flex:none;
+}
+
+/* ── 04 trace ──────────────────────────────────────────────────────────── */
+/* A square recessed slate: paper pressed into a tray. Sized by JS so it is
+   always fully on screen; the shipped app used a full-bleed non-square canvas
+   that distorted every glyph on a wide phone. */
+.slate{
+  position:relative; flex:none; margin:0 auto;
+  width:var(--slate,300px); height:var(--slate,300px);
+  border-radius:var(--r-slate); background:var(--card);
+  border:1px solid var(--line); box-shadow:var(--sh-slate);
+  touch-action:none;
+}
+.slate__svg,.slate__canvas,.slate__alive,.slate__mask{
+  position:absolute; inset:0; width:100%; height:100%;
+}
+.slate__svg,.slate__alive,.slate__mask{ pointer-events:none }
+.slate__canvas{ touch-action:none; cursor:crosshair; border-radius:var(--r-slate) }
+#app[data-stage="alive"] .slate__canvas{ cursor:default }
+
+.slate__ghosts path{ fill:none; stroke:var(--ghost); stroke-width:13; stroke-linecap:round; stroke-linejoin:round }
+.slate__guides path{ fill:none; stroke:var(--guide-idle); stroke-width:9; stroke-linecap:round; stroke-linejoin:round }
+.slate__guides path[data-state="done"]{ stroke:var(--guide-done) }
+/* the dotted "follow the dots" affordance appears only on the ACTIVE stroke */
+.slate__guides path[data-state="current"]{ stroke:var(--guide-live); stroke-dasharray:1 12 }
+.slate__demo path{
+  fill:none; stroke-width:8; stroke-linecap:round; stroke-linejoin:round; opacity:.95;
+  stroke-dasharray:1; stroke-dashoffset:1;
+  animation:akDraw var(--demo-ms) ease-in-out forwards;
+  animation-delay:calc(var(--i) * (var(--demo-ms) + 110ms));
+}
+.slate__demo{ display:none }
+#app[data-demo="1"] .slate__demo{ display:block }
+
+/* The mask engine's ghost is a CANVAS, not a text node, and is drawn with the
+   exact font, size and baseline used to build the coverage mask. A DOM text
+   node centres by line-box and lands a few pixels off, which would put the
+   ghost the child colours somewhere the mask is not. */
+.slate__mask{ display:none }
+#app[data-engine="mask"][data-screen="trace"] .slate__mask{ display:block }
+#app[data-engine="mask"][data-demo="1"] .slate__mask{
+  animation:akWipe calc(var(--demo-ms) * 1.6) ease-in-out both;
+}
+/* the direction arrow is stroke-engine only — showing a direction we have not
+   had reviewed would be a lie to a child learning handwriting */
+#app[data-engine="mask"] .slate__arrow{ display:none }
+
+.slate__dot,.slate__arrow{ position:absolute; pointer-events:none; opacity:0 }
+.slate__dot{
+  width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%;
+  background:var(--haldi); box-shadow:0 0 0 6px var(--halo-2);
+  left:var(--dot-x,50%); top:var(--dot-y,50%);
+}
+.slate__arrow{
+  margin:-13px 0 0 -13px; color:var(--haldi);
+  left:var(--arrow-x,50%); top:var(--arrow-y,50%);
+  transform:rotate(var(--arrow-a,0deg));
+}
+#app[data-stage="trace"] .slate__dot{ opacity:1; animation:akDot 1.4s ease-in-out infinite }
+#app[data-stage="trace"] .slate__arrow{ opacity:.85 }
+
+/* the signature moment — identical for both engines */
+.slate__alive{
+  opacity:0; display:flex; align-items:center; justify-content:center;
+  transition:opacity 380ms ease;
+}
+.slate__alive svg{ width:100%; height:100% }
+.slate__alive svg path{ fill:none; stroke:var(--track-color); stroke-width:9; stroke-linecap:round; stroke-linejoin:round }
+.slate__alive canvas{ width:100%; height:100% }
+#app[data-alive="1"] .slate__alive,
+#app[data-alive="2"] .slate__alive{ opacity:1 }
+#app[data-alive="2"] .slate__alive{ animation:akNod 900ms var(--settle) both }
+
+#app[data-alive="1"] .slate__canvas,
+#app[data-alive="2"] .slate__canvas{
+  opacity:0; filter:blur(9px); transform:translateY(-14px);
+  transition:opacity 420ms ease, filter 420ms ease, transform 520ms ease;
+}
+#app[data-stage="alive"] .slate__ghosts,
+#app[data-stage="alive"] .slate__guides{ opacity:0; transition:opacity 300ms ease }
+
+.slate__ring{
+  position:absolute; left:50%; top:46%; border-radius:50%;
+  width:53%; height:53%; margin:-26.5% 0 0 -26.5%;
+  border:6px solid var(--haldi); opacity:0; pointer-events:none;
+}
+#app[data-alive="2"] .slate__ring{ opacity:1; animation:akRing 900ms ease-out both }
+
+.seed{
+  position:absolute; left:50%; top:46%; width:12px; height:12px;
+  border-radius:50%; opacity:0; pointer-events:none;
+}
+#app[data-alive="2"] .seed{ opacity:1; animation:akSeed 900ms var(--scatter) forwards }
+
+.trace-foot{
+  display:flex; flex-direction:column; align-items:center; gap:var(--s3); flex:none;
+}
+
+/* ── 05 shloka ─────────────────────────────────────────────────────────── */
+.shlokas{ display:flex; flex-direction:column; gap:var(--s5) }
+.shloka__name{ margin:0 2px 2px; font:500 15px var(--face-ui); color:var(--ink) }
+.shloka__sub{ margin:0 2px var(--s3); font:400 13px var(--face-ui); color:var(--ink-4) }
+
+.shloka-line{
+  display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+  min-height:76px; padding:12px var(--s4); margin-bottom:var(--s2);
+  border-radius:var(--r-tap);
+  background:rgba(253,248,240,.55); border:1px solid rgba(36,30,24,.1);
+}
+/* selection is elevation + border + bead, not a flat fill swap — the shipped
+   app turned the whole line haldi yellow, which fought the text */
+.shloka-line[data-playing="1"]{
+  background:var(--card); border:2px solid var(--indigo); box-shadow:var(--sh-1);
+}
+.shloka-line__bead{
+  width:16px; height:16px; border-radius:50%; flex:none; background:rgba(36,30,24,.14);
+}
+.shloka-line[data-playing="1"] .shloka-line__bead{ background:var(--haldi) }
+.shloka-line[data-loading="1"] .shloka-line__bead{
+  background:transparent; border:3px dashed rgba(49,59,119,.6); animation:akSpin 1.5s linear infinite;
+}
+.shloka-line__text{ font:400 clamp(19px,5.2vw,27px)/1.35 var(--face-deva); color:var(--ink-2) }
+.shloka-line[data-playing="1"] .shloka-line__text{ color:var(--ink) }
+.shloka-line__tr{ display:block; margin-top:4px; font:400 11px var(--face-mono); color:var(--ink-4) }
+.shloka-line__mean{ display:block; margin-top:2px; font:400 12px var(--face-ui); color:var(--ink-4) }
+
+/* ── overlays ──────────────────────────────────────────────────────────── */
+.overlay{
+  position:fixed; inset:0; z-index:20; display:none;
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:calc(24px + env(safe-area-inset-top)) var(--s5)
+          calc(24px + env(safe-area-inset-bottom));
+}
+#app[data-overlay="celebrate"] .overlay--celebrate,
+#app[data-overlay="break"]     .overlay--break,
+#app[data-overlay="gate"]      .overlay--gate,
+#app[data-overlay="parent"]    .overlay--parent{ display:flex }
+
+/* Nearly opaque rather than the mockup's .96: that mockup covered a 320px
+   slate inside a phone frame, whereas ours is full-bleed, so at .96 the whole
+   trace screen ghosts through and competes with the letter. */
+.overlay--celebrate{ background:rgba(243,234,220,.985); gap:clamp(18px,4vh,32px) }
+.overlay--break    { background:var(--scrim-break) }
+.overlay--gate     { background:var(--scrim-gate) }
+.overlay--parent   { background:var(--paper); justify-content:flex-start; padding-inline:var(--s4) }
+
+.celebrate{
+  display:flex; flex-direction:column; align-items:center;
+  animation:akRise 420ms var(--settle) both;
+}
+.celebrate__glyph{ font:400 clamp(110px,32vw,190px)/1 var(--track-font); color:var(--track-color) }
+.celebrate__keyword{ margin-top:var(--s3); font:400 clamp(22px,6vw,30px)/1.2 var(--track-font) }
+.celebrate__actions{ display:flex; gap:clamp(14px,5vw,24px); align-items:center }
+
+/* break: a calm indigo, a breathing dot, and a task that is OFF the device */
+.sheet{
+  width:100%; max-width:400px; background:var(--card); border-radius:var(--r-slate);
+  padding:26px var(--s5); display:flex; flex-direction:column; align-items:center;
+  gap:var(--s4); animation:akRise 380ms var(--settle) both;
+}
+.sheet__title{ margin:0; font:400 30px/1.25 var(--face-deva); text-align:center }
+.sheet__body{ margin:0; max-width:280px; text-align:center; font:400 16px/1.5 var(--face-ui); color:var(--ink-2) }
+.sheet__body b{ font:400 26px var(--track-font); font-weight:400 }
+.breathe{
+  width:112px; height:112px; border-radius:50%; background:rgba(224,160,42,.16);
+  display:flex; align-items:center; justify-content:center;
+  animation:akBreathe 4s ease-in-out infinite;
+}
+.breathe i{ width:60px; height:60px; border-radius:50%; background:var(--haldi); display:block }
+/* deliberate anti-affordance: tiny, grey, and prefixed "Grown-up:" */
+.link-grown{
+  font:500 12px var(--face-ui); color:var(--ink-4);
+  text-decoration:underline; padding:12px; cursor:pointer;
+}
+.link-grown[hidden]{ display:none }
+
+/* gate */
+.gate{
+  width:100%; max-width:400px; background:var(--card);
+  border-radius:var(--r-gate); padding:var(--s5) 22px var(--s4);
+}
+#app[data-gate-wrong="1"] .gate{ animation:akShake 400ms ease }
+.gate__q{ margin:14px 0 18px; font:400 17px/1.5 var(--face-ui); color:var(--ink) }
+.gate__q strong{ font-weight:600 }
+.gate__choices{ display:flex; gap:var(--s3) }
+.gate__choice{
+  flex:1; height:var(--tap); border-radius:var(--r-card-sm);
+  background:var(--paper); border:1px solid var(--line-2);
+  font:500 22px var(--face-ui); color:var(--ink); cursor:pointer;
+}
+.gate__back{
+  display:block; width:100%; padding:14px; margin-top:6px;
+  font:500 13px var(--face-ui); color:var(--ink-4); cursor:pointer;
+}

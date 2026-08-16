@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Maskable: the glyph sits inside the 80% safe circle (r=205 about centre),
+       so Android's mask cannot crop it. Deliberately a separate artwork from
+       icon.svg — reusing the plain icon here gets it clipped. -->
+  <rect width="512" height="512" fill="#E0A02A"/>
+  <text x="256" y="256" font-family="Tiro Devanagari Marathi, Noto Sans Devanagari, serif"
+        font-size="230" fill="#FDF8F0" text-anchor="middle" dominant-baseline="central">क</text>
+</svg>

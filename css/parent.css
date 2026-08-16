@@ -1,0 +1,110 @@
+/* ── Akshar Khel · the grown-ups area ──────────────────────────────────── */
+
+/* The door. Low contrast on purpose: a child should not find it by looking,
+   and a 1.4s hold is beyond an impatient three-year-old's patience. The hit
+   area is still a full 64px square — the negative margin only pulls its
+   visual centre into the corner. */
+.hold-door{
+  width:var(--tap); height:var(--tap); margin:-14px -10px 0 0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:5px; opacity:.5; cursor:pointer; touch-action:none; flex:none;
+}
+.hold-door__dots{ display:flex; gap:4px }
+.hold-door__dots i{ width:5px; height:5px; border-radius:50%; background:var(--ink-4); display:block }
+.hold-door__label{ font:500 9px var(--face-ui); letter-spacing:.06em; color:var(--ink-4) }
+.hold-door__track{
+  width:34px; height:3px; border-radius:2px; background:rgba(36,30,24,.14); overflow:hidden;
+}
+.hold-door__fill{
+  display:block; height:100%; width:var(--hold-pct,0%);
+  background:var(--ink-4); transition:width 60ms linear;
+}
+
+/* ── the sheet ─────────────────────────────────────────────────────────── */
+.parent{
+  width:100%; max-width:560px; margin:0 auto; height:100%;
+  display:flex; flex-direction:column; min-height:0;
+}
+.parent__bar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding-bottom:var(--s4); flex:none;
+}
+.parent__cards{
+  flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  display:flex; flex-direction:column; gap:var(--s3);
+  padding-bottom:var(--s6);
+}
+
+.pcard{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:var(--r-card-sm); padding:18px;
+}
+.pcard__title{ margin:0 0 4px; font:500 15px var(--face-ui); color:var(--ink) }
+/* --ink-3 clears 4.5:1 on --card; --ink-4 is for eyebrows and meta only */
+.pcard__body{ margin:0 0 12px; font:400 13px/1.55 var(--face-ui); color:var(--ink-3) }
+.pcard__body:last-child{ margin-bottom:0 }
+.pcard__body b{ font-weight:600; color:var(--ink-2) }
+
+/* segmented option rows */
+.seg{ display:flex; gap:var(--s2) }
+.seg__opt{
+  flex:1; height:48px; border-radius:var(--r-sm); background:var(--paper);
+  font:400 14px var(--face-ui); color:var(--ink-3); cursor:pointer; border:none;
+}
+.seg__opt[aria-pressed="true"]{ background:var(--haldi); color:var(--ink); font-weight:500 }
+.seg__opt[disabled]{ opacity:.4; cursor:default }
+
+.prange{ width:100%; accent-color:var(--peacock); margin:var(--s2) 0 0 }
+
+/* progress */
+.pglyphs{ display:flex; flex-wrap:wrap; gap:var(--s2); margin:var(--s2) 0 var(--s3) }
+.pglyph{
+  min-width:40px; height:40px; padding:0 8px; border-radius:12px;
+  border:1px solid var(--line); background:var(--paper);
+  display:flex; align-items:center; justify-content:center;
+  font:400 20px/1 var(--face-deva); color:var(--ink-3);
+}
+.pglyph[data-done="1"]{ border:2px solid var(--haldi); color:var(--ink) }
+.pglyph[data-latin="1"]{ font-family:var(--face-latin) }
+
+.ptrack{ margin-bottom:var(--s4) }
+.ptrack:last-child{ margin-bottom:0 }
+.ptrack__head{ font:500 14px var(--face-ui); color:var(--ink-2) }
+
+/* the voice honesty readout */
+.vrow{ display:flex; gap:10px; align-items:flex-start; margin-bottom:var(--s3) }
+.vrow:last-child{ margin-bottom:0 }
+.vswatch{ width:14px; height:14px; border-radius:3px; flex:none; margin-top:3px; background:var(--bead-off) }
+.vswatch[data-tier="clip"]{ background:var(--leaf) }
+.vswatch[data-tier="pregen"]{ background:var(--haldi) }
+.vswatch[data-tier="device"]{ background:var(--peacock) }
+.vrow__text{ font:400 13px/1.5 var(--face-ui); color:var(--ink-3) }
+.vrow__text b{ color:var(--ink-2) }
+
+/* buttons inside the parent area — adult-sized, adult-styled */
+.pbtn{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:44px; padding:0 18px; border-radius:var(--r-sm);
+  background:var(--paper); border:1px solid var(--line-2);
+  font:500 14px var(--face-ui); color:var(--ink); cursor:pointer;
+}
+.pbtn--danger{ color:var(--kumkum) }
+.pbtn--primary{ background:var(--peacock); color:var(--card); border-color:transparent }
+.pbtn + .pbtn{ margin-left:var(--s2) }
+.pbtn-row{ display:flex; flex-wrap:wrap; gap:var(--s2) }
+
+/* the feedback payload preview — rendering the literal string is what turns a
+   privacy promise into something a parent can verify */
+.payload{
+  margin:var(--s2) 0 var(--s3); padding:12px 14px; border-radius:12px;
+  background:var(--paper); border:1px solid var(--line);
+  font:400 11px/1.7 var(--face-mono); color:var(--ink-2);
+  white-space:pre-wrap; word-break:break-word; overflow-x:auto;
+  -webkit-user-select:text; user-select:text;
+}
+
+.pnote{
+  margin:var(--s2) 0 0; padding:10px 12px; border-radius:12px;
+  background:rgba(224,160,42,.14);
+  font:400 12px/1.5 var(--face-ui); color:var(--ink-2);
+}

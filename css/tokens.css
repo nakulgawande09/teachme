@@ -1,0 +1,93 @@
+/* ── Akshar Khel · design tokens ───────────────────────────────────────────
+   "Well-made wooden toy": sanded mango wood, cotton paper, block-printed
+   colour. Warm, matte, unhurried. Things press down and settle; nothing
+   bounces or sparkles. Never gradients. The glyph is the only hero.
+   ------------------------------------------------------------------------ */
+
+:root{
+  /* surface — warm neutral ramp, no pure white */
+  --paper:#F3EADC;
+  --card:#FDF8F0;
+
+  /* ink ramp */
+  --ink:#241E18;      /* primary text, icon strokes on light */
+  --ink-2:#4A4038;    /* body copy in modals, inactive shloka text */
+  --ink-3:#6B5F52;    /* parent-area secondary copy, hints  (4.5:1 on --card) */
+  --ink-4:#8A7C6C;    /* eyebrows, meta, transliteration — never body copy */
+
+  /* the five block-print colours */
+  --haldi:#E0A02A;    /* audio, progress beads, "done", attention */
+  --kumkum:#BE3F2C;   /* मराठी track */
+  --peacock:#14706B;  /* English track, phonetic labels */
+  --leaf:#5E8B3A;     /* success, next, confirm */
+  --leaf-ink:#41652A; /* leaf text on a leaf tint */
+  --indigo:#313B77;   /* संस्कृत track */
+
+  /* derived alphas — used literally, everywhere */
+  --line:rgba(36,30,24,.12);
+  --line-2:rgba(36,30,24,.14);
+  --tint:rgba(36,30,24,.05);
+  --guide-idle:rgba(36,30,24,.10);
+  --guide-done:rgba(36,30,24,.16);
+  --guide-live:rgba(36,30,24,.22);
+  --ghost:rgba(36,30,24,.13);
+  --bead-off:rgba(36,30,24,.22);
+  --halo:rgba(224,160,42,.18);
+  --halo-2:rgba(224,160,42,.22);
+
+  /* three scrims, one per emotional register */
+  --scrim-celebrate:rgba(243,234,220,.96);
+  --scrim-break:rgba(49,59,119,.9);
+  --scrim-gate:rgba(36,30,24,.55);
+
+  /* shadows — hard, blur-free, press-down offsets. no blur anywhere. */
+  --sh-1:0 2px 0 rgba(36,30,24,.12);
+  --sh-2:0 3px 0 rgba(36,30,24,.14);
+  --sh-press:0 1px 0 rgba(36,30,24,.14);
+  --sh-haldi:0 2px 0 rgba(150,100,14,.42);
+  --sh-haldi-lg:0 3px 0 rgba(150,100,14,.42);
+  --sh-peacock:0 3px 0 rgba(10,72,68,.5);
+  --sh-leaf:0 4px 0 rgba(60,92,34,.5);
+  --sh-indigo:0 3px 0 rgba(24,30,66,.45);
+  --sh-slate:inset 0 2px 0 rgba(255,255,255,.7), 0 3px 0 rgba(36,30,24,.12);
+
+  /* type — three roles, never one face for all of them.
+     Andika is a literacy face (single-storey a/g) for Latin glyphs a child
+     must copy. Tiro Devanagari *Marathi* gives locale-correct letterforms. */
+  --face-latin:'Andika','Segoe UI',system-ui,sans-serif;
+  --face-deva:'Tiro Devanagari Marathi','Noto Sans Devanagari',serif;
+  --face-ui:'Work Sans',system-ui,-apple-system,sans-serif;
+  --face-mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  /* space — 4pt scale, only these */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+
+  /* tap targets — floors, not targets */
+  --tap:64px; --tap-lg:96px;
+
+  /* radii — scale with the box; roughly 0.33 x height for squircles */
+  --r-pill:999px;
+  --r-sm:14px;
+  --r-card-sm:18px;
+  --r-tap:20px;
+  --r-frame:22px;
+  --r-card:24px;
+  --r-gate:26px;
+  --r-track:28px;
+  --r-slate:30px;
+  --r-lg:32px;
+
+  /* motion — teaching speed, then settle */
+  --press:120ms;
+  --demo-ms:850ms;
+  --settle:cubic-bezier(.3,.8,.3,1);
+  --scatter:cubic-bezier(.2,.7,.3,1);
+
+  /* set per-track by [data-track] below; defaults keep things sane */
+  --track-color:var(--peacock);
+  --track-font:var(--face-latin);
+}
+
+[data-track="en"]{ --track-color:var(--peacock); --track-font:var(--face-latin); }
+[data-track="mr"]{ --track-color:var(--kumkum);  --track-font:var(--face-deva); }
+[data-track="sa"]{ --track-color:var(--indigo);  --track-font:var(--face-deva); }
