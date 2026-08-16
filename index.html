@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>अक्षर खेळ · Akshar Khel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFF9EF;
+    --ink:#3B2A1A;
+    --haldi:#F7B32B;
+    --kumkum:#E04A3F;
+    --mor:#0F7173;
+    --paan:#4E9B47;
+    --jambhala:#5B5EA6;
+    --card-r:26px;
+    --shadow:0 6px 0 rgba(59,42,26,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Baloo 2","Noto Sans Devanagari",-apple-system,"Segoe UI",sans-serif;
+    min-height:100vh;
+    user-select:none;
+    -webkit-user-select:none;
+    overflow-x:hidden;
+  }
+  /* subtle rangoli-dot texture */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;
+    background-image:radial-gradient(rgba(224,74,63,.06) 2px,transparent 2.5px);
+    background-size:34px 34px;
+  }
+
+  header{
+    position:sticky;top:0;z-index:10;
+    background:var(--bg);
+    padding:14px 16px 8px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:3px dashed rgba(59,42,26,.12);
+  }
+  .title{font-weight:800;font-size:1.45rem;line-height:1.1}
+  .title small{display:block;font-weight:500;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(59,42,26,.55)}
+  .stars{
+    background:var(--haldi);
+    border-radius:999px;padding:8px 16px;
+    font-weight:800;font-size:1.1rem;
+    box-shadow:var(--shadow);
+    transition:transform .18s ease;
+  }
+  .stars.bump{transform:scale(1.25) rotate(-6deg)}
+
+  nav{
+    display:flex;gap:10px;padding:12px 16px;position:sticky;top:64px;z-index:9;background:var(--bg);
+  }
+  nav button{
+    flex:1;border:none;border-radius:18px;
+    padding:12px 6px;font-family:inherit;font-weight:800;font-size:1.05rem;
+    background:#fff;color:var(--ink);
+    box-shadow:var(--shadow);cursor:pointer;
+    transition:transform .12s ease, background .12s ease, color .12s ease;
+  }
+  nav button:active{transform:translateY(3px)}
+  nav button.on{color:#fff}
+  nav button[data-tab="abc"].on{background:var(--kumkum)}
+  nav button[data-tab="mr"].on{background:var(--mor)}
+  nav button[data-tab="sa"].on{background:var(--jambhala)}
+  nav button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  main{padding:10px 14px 90px;max-width:640px;margin:0 auto}
+  .hint{
+    text-align:center;font-weight:600;font-size:.95rem;
+    color:rgba(59,42,26,.6);margin:6px 0 14px;
+  }
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(min-width:480px){.grid{grid-template-columns:repeat(4,1fr)}}
+
+  .card{
+    border:none;border-radius:var(--card-r);
+    aspect-ratio:1/1.12;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    font-family:inherit;color:#fff;cursor:pointer;
+    box-shadow:var(--shadow);
+    transition:transform .12s ease;
+    padding:6px;position:relative;
+  }
+  .card:active{transform:translateY(3px)}
+  .card:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .card .glyph{font-size:2.3rem;font-weight:800;line-height:1}
+  .card .pic{font-size:1.6rem;line-height:1.2}
+  .card .word{font-size:.78rem;font-weight:700;opacity:.95;line-height:1.1;text-align:center}
+  .card.done::after{
+    content:"⭐";position:absolute;top:6px;right:8px;font-size:.85rem;
+  }
+  .card.pop{animation:pop .45s ease}
+  @keyframes pop{
+    0%{transform:scale(1)}
+    35%{transform:scale(1.14) rotate(-3deg)}
+    70%{transform:scale(.96) rotate(2deg)}
+    100%{transform:scale(1)}
+  }
+
+  .c0{background:var(--kumkum)} .c1{background:var(--mor)}
+  .c2{background:var(--paan)} .c3{background:var(--haldi);color:var(--ink)}
+  .c4{background:var(--jambhala)}
+
+  .section-label{
+    font-weight:800;font-size:1.05rem;margin:20px 4px 10px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-label::after{content:"";flex:1;border-top:3px dotted rgba(59,42,26,.18)}
+
+  /* Shloka cards */
+  .shloka{
+    background:#fff;border-radius:var(--card-r);
+    box-shadow:var(--shadow);
+    padding:18px 16px;margin-bottom:16px;
+  }
+  .shloka h3{margin:0 0 4px;font-size:1.15rem;font-weight:800;color:var(--jambhala)}
+  .shloka .sub{font-size:.82rem;color:rgba(59,42,26,.6);font-weight:600;margin-bottom:10px}
+  .line{
+    display:block;width:100%;text-align:left;
+    border:none;border-radius:14px;font-family:inherit;
+    background:#F4F0FF;color:var(--ink);
+    font-size:1.02rem;font-weight:700;line-height:1.5;
+    padding:10px 12px;margin-bottom:8px;cursor:pointer;
+    transition:transform .12s ease, background .12s ease;
+  }
+  .line:active{transform:scale(.98)}
+  .line.playing{background:var(--haldi)}
+  .line:focus-visible{outline:3px solid var(--jambhala);outline-offset:2px}
+  .meaning{font-size:.85rem;font-weight:600;color:rgba(59,42,26,.62);margin-top:6px}
+
+  .tab{display:none}
+  .tab.on{display:block;animation:fadein .25s ease}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* celebration */
+  #cheer{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    z-index:50;pointer-events:none;
+  }
+  #cheer.show{display:flex}
+  #cheer .msg{
+    background:#fff;border-radius:30px;padding:26px 34px;
+    font-size:1.6rem;font-weight:800;text-align:center;
+    box-shadow:0 10px 0 rgba(59,42,26,.18);
+    animation:pop .6s ease;
+  }
+  .confetti{position:fixed;top:-30px;font-size:1.4rem;animation:fall linear forwards;z-index:49;pointer-events:none}
+  @keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+
+  /* mode toggle */
+  .mode{
+    display:flex;gap:8px;justify-content:center;
+    padding:2px 16px 10px;position:sticky;top:126px;z-index:8;background:var(--bg);
+  }
+  .mode button{
+    border:none;border-radius:999px;font-family:inherit;
+    font-weight:800;font-size:.95rem;padding:9px 20px;
+    background:#fff;color:rgba(59,42,26,.55);
+    box-shadow:var(--shadow);cursor:pointer;
+    transition:transform .12s ease, background .12s ease, color .12s ease;
+  }
+  .mode button:active{transform:translateY(2px)}
+  .mode button.on{background:var(--paan);color:#fff}
+  .mode button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  /* tracer */
+  #tracer{
+    position:fixed;inset:0;z-index:60;display:none;
+    background:var(--bg);flex-direction:column;
+    touch-action:none;
+  }
+  #tracer.show{display:flex}
+  .tr-top{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;gap:10px;
+  }
+  .tr-top .tr-word{font-weight:800;font-size:1.25rem}
+  .tr-top .tr-word small{display:block;font-size:.75rem;font-weight:600;color:rgba(59,42,26,.55)}
+  .tr-btn{
+    border:none;border-radius:16px;font-family:inherit;
+    font-size:1.3rem;padding:10px 14px;background:#fff;
+    box-shadow:var(--shadow);cursor:pointer;
+    transition:transform .12s ease;
+  }
+  .tr-btn:active{transform:translateY(2px)}
+  .tr-btn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  #trCanvas{
+    flex:1;width:100%;display:block;
+    border-radius:30px 30px 0 0;
+    background:#fff;
+    box-shadow:0 -4px 0 rgba(59,42,26,.08);
+  }
+  .tr-progress{
+    height:14px;margin:0 16px 10px;border-radius:999px;
+    background:rgba(59,42,26,.1);overflow:hidden;
+  }
+  .tr-progress i{
+    display:block;height:100%;width:0%;
+    background:linear-gradient(90deg,var(--haldi),var(--paan));
+    border-radius:999px;transition:width .2s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">अक्षर खेळ<small>Tap · Listen · Learn</small></div>
+  <div class="stars" id="stars">⭐ 0</div>
+</header>
+
+<nav>
+  <button data-tab="abc" class="on">🔤 ABC</button>
+  <button data-tab="mr">🪔 मराठी</button>
+  <button data-tab="sa">🕉️ संस्कृत</button>
+</nav>
+
+<div class="mode" id="modeBar">
+  <button data-mode="listen" class="on">🔊 ऐका</button>
+  <button data-mode="write">✏️ लिहा</button>
+</div>
+
+<main>
+  <div class="tab on" id="tab-abc">
+    <p class="hint">अक्षरावर टिचकी मार — ऐक आणि बोल! 👆🔊</p>
+    <div class="grid" id="grid-abc"></div>
+  </div>
+
+  <div class="tab" id="tab-mr">
+    <p class="hint">अक्षरावर टिचकी मार — ऐक आणि बोल! 👆🔊</p>
+    <div class="section-label">स्वर</div>
+    <div class="grid" id="grid-swara"></div>
+    <div class="section-label">व्यंजन</div>
+    <div class="grid" id="grid-vyanjan"></div>
+  </div>
+
+  <div class="tab" id="tab-sa">
+    <p class="hint">ओळीवर टिचकी मार आणि सोबत म्हण 🙏</p>
+    <div id="shlokas"></div>
+    <div class="section-label">जादूचे शब्द ✨</div>
+    <p class="hint">संस्कृत शब्द — शरीर आणि निसर्ग</p>
+    <div class="grid" id="grid-words"></div>
+  </div>
+</main>
+
+<div id="cheer"><div class="msg" id="cheermsg">🎉 शाब्बास! 🎉</div></div>
+
+<div id="tracer">
+  <div class="tr-top">
+    <button class="tr-btn" id="trClose" aria-label="बंद करा">⬅️</button>
+    <div class="tr-word" id="trWord">क<small>बोटाने गिरव ✏️</small></div>
+    <div style="display:flex;gap:8px">
+      <button class="tr-btn" id="trSpeak" aria-label="ऐका">🔊</button>
+      <button class="tr-btn" id="trClear" aria-label="पुसा">🧽</button>
+    </div>
+  </div>
+  <div class="tr-progress"><i id="trFill"></i></div>
+  <canvas id="trCanvas"></canvas>
+</div>
+
+<script>
+/* ---------- DATA ---------- */
+const ABC=[
+ ["A","🍎","Apple"],["B","⚽","Ball"],["C","🐱","Cat"],["D","🐶","Dog"],
+ ["E","🐘","Elephant"],["F","🐟","Fish"],["G","🍇","Grapes"],["H","🏠","House"],
+ ["I","🍦","Ice cream"],["J","🫙","Jar"],["K","🪁","Kite"],["L","🦁","Lion"],
+ ["M","🥭","Mango"],["N","🪺","Nest"],["O","🦉","Owl"],["P","🦚","Peacock"],
+ ["Q","👑","Queen"],["R","🌈","Rainbow"],["S","☀️","Sun"],["T","🐯","Tiger"],
+ ["U","☂️","Umbrella"],["V","🚐","Van"],["W","⌚","Watch"],["X","🎻","Xylophone"],
+ ["Y","🧶","Yarn"],["Z","🦓","Zebra"]
+];
+const SWARA=[
+ ["अ","🍍","अननस"],["आ","🥭","आंबा"],["इ","🏢","इमारत"],["ई","✨",""],
+ ["उ","🐭","उंदीर"],["ऊ","🎋","ऊस"],["ए","✨",""],["ऐ","✨",""],
+ ["ओ","👄","ओठ"],["औ","💊","औषध"],["अं","✨",""],["अः","✨",""]
+];
+const VYANJAN=[
+ ["क","🪷","कमळ"],["ख","🖍️","खडू"],["ग","🙏","गणपती"],["घ","🏠","घर"],["ङ","✨",""],
+ ["च","🥄","चमचा"],["छ","☂️","छत्री"],["ज","🚢","जहाज"],["झ","🌳","झाड"],["ञ","✨",""],
+ ["ट","🍅","टोमॅटो"],["ठ","👍","ठसा"],["ड","🍱","डबा"],["ढ","☁️","ढग"],["ण","🏹","बाण"],
+ ["त","⭐","तारा"],["थ","🐦","थवा"],["द","🪔","दिवा"],["ध","🏹","धनुष्य"],["न","🚰","नळ"],
+ ["प","🪁","पतंग"],["फ","🎈","फुगा"],["ब","🦆","बदक"],["भ","🎃","भोपळा"],["म","🐟","मासा"],
+ ["य","🔥","यज्ञ"],["र","🤖","रोबोट"],["ल","🟡","लाडू"],["व","🐯","वाघ"],
+ ["श","🐚","शंख"],["ष","✨",""],["स","🐰","ससा"],["ह","🐘","हत्ती"],["ळ","👶","बाळ"],
+ ["क्ष","✨",""],["ज्ञ","✨",""]
+];
+const WORDS=[
+ ["हस्त","🤚","हात"],["नेत्र","👁️","डोळा"],["कर्ण","👂","कान"],["नासिका","👃","नाक"],
+ ["मुखम्","😊","तोंड"],["पाद","🦶","पाय"],["जलम्","💧","पाणी"],["फलम्","🍎","फळ"],
+ ["पुष्पम्","🌸","फूल"],["सूर्य","☀️","सूर्य"],["चंद्र","🌙","चंद्र"],["तारा","⭐","चांदणी"]
+];
+const SHLOKAS=[
+ {
+  name:"शुभं करोति", sub:"संध्याकाळी दिवा लावताना 🪔",
+  lines:[
+   ["शुभं करोति कल्याणम् आरोग्यं धनसंपदा ।","दिवा चांगले आरोग्य आणि सुख देतो"],
+   ["शत्रुबुद्धिविनाशाय दीपज्योतिर्नमोऽस्तु ते ॥","दिव्याच्या ज्योतीला नमस्कार 🙏"]
+  ]
+ },
+ {
+  name:"वक्रतुण्ड महाकाय", sub:"गणपती बाप्पाचा श्लोक 🐘",
+  lines:[
+   ["वक्रतुण्ड महाकाय सूर्यकोटि समप्रभ ।","बाप्पा सूर्यासारखा तेजस्वी आहे"],
+   ["निर्विघ्नं कुरु मे देव सर्वकार्येषु सर्वदा ॥","बाप्पा, माझी सगळी कामे छान होऊ देत 🙏"]
+  ]
+ },
+ {
+  name:"कराग्रे वसते", sub:"सकाळी उठल्यावर 🌅",
+  lines:[
+   ["कराग्रे वसते लक्ष्मीः करमध्ये सरस्वती ।","हातात लक्ष्मी आणि सरस्वती राहतात"],
+   ["करमूले तु गोविन्दः प्रभाते करदर्शनम् ॥","सकाळी आपल्या हातांकडे बघून नमस्कार 🙏"]
+  ]
+ }
+];
+
+/* ---------- SPEECH ---------- */
+let voices=[];
+function loadVoices(){voices=speechSynthesis.getVoices()}
+loadVoices();
+speechSynthesis.onvoiceschanged=loadVoices;
+
+function pickVoice(langs){
+  for(const l of langs){
+    const v=voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith(l));
+    if(v)return v;
+  }
+  return null;
+}
+function speak(text,langs){
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    const v=pickVoice(langs);
+    if(v)u.voice=v;
+    u.lang=(v&&v.lang)||langs[0];
+    u.rate=0.8;u.pitch=1.05;
+    speechSynthesis.speak(u);
+    return u;
+  }catch(e){return null}
+}
+const EN=["en-in","en-gb","en-us","en"];
+const MR=["mr","hi","en-in"];
+const SA=["sa","hi","mr","en-in"];
+
+/* ---------- STARS ---------- */
+let starCount=0;
+const seen=new Set();
+const starsEl=document.getElementById("stars");
+function addStar(key){
+  if(seen.has(key))return;
+  seen.add(key);starCount++;
+  starsEl.textContent="⭐ "+starCount;
+  starsEl.classList.remove("bump");void starsEl.offsetWidth;
+  starsEl.classList.add("bump");
+  if(starCount%10===0)celebrate();
+}
+function celebrate(){
+  const cheer=document.getElementById("cheer");
+  const msgs=["🎉 शाब्बास! 🎉","🌟 खूप छान! 🌟","🥳 वा वा! 🥳"];
+  document.getElementById("cheermsg").textContent=msgs[Math.floor(Math.random()*msgs.length)];
+  cheer.classList.add("show");
+  const emo=["🎉","⭐","🎈","🌸","✨"];
+  for(let i=0;i<18;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.textContent=emo[i%emo.length];
+    c.style.left=Math.random()*100+"vw";
+    c.style.animationDuration=(1.4+Math.random()*1.4)+"s";
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),3000);
+  }
+  setTimeout(()=>cheer.classList.remove("show"),1800);
+}
+
+/* ---------- MODE ---------- */
+let mode="listen";
+document.querySelectorAll("#modeBar button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll("#modeBar button").forEach(b=>b.classList.remove("on"));
+    btn.classList.add("on");
+    mode=btn.dataset.mode;
+  });
+});
+
+/* ---------- CARD BUILDER ---------- */
+function buildGrid(id,data,langs,prefix,sayWord,traceable){
+  const grid=document.getElementById(id);
+  data.forEach((item,i)=>{
+    const [glyph,pic,word]=item;
+    const b=document.createElement("button");
+    b.className="card c"+(i%5);
+    b.innerHTML=`<span class="glyph">${glyph}</span><span class="pic">${pic}</span><span class="word">${word||""}</span>`;
+    b.addEventListener("click",()=>{
+      b.classList.remove("pop");void b.offsetWidth;b.classList.add("pop");
+      const say=sayWord&&word?`${glyph}. ${sayWord(glyph,word)}`:glyph;
+      if(mode==="write"&&traceable){
+        openTracer(glyph,word,langs,say,prefix);
+      }else{
+        speak(say,langs);
+        addStar(prefix+glyph);
+        b.classList.add("done");
+      }
+    });
+    grid.appendChild(b);
+  });
+}
+buildGrid("grid-abc",ABC,EN,"en",(g,w)=>`${g} for ${w}`,true);
+buildGrid("grid-swara",SWARA,MR,"sw",(g,w)=>w,true);
+buildGrid("grid-vyanjan",VYANJAN,MR,"vy",(g,w)=>w,true);
+buildGrid("grid-words",WORDS,SA,"sa",(g,w)=>`${g}. म्हणजे ${w}`,false);
+
+/* ---------- TRACER ---------- */
+const tracer=document.getElementById("tracer");
+const trCanvas=document.getElementById("trCanvas");
+const trFill=document.getElementById("trFill");
+const trWordEl=document.getElementById("trWord");
+const ctx=trCanvas.getContext("2d");
+const CRAYON=["#E04A3F","#F7B32B","#4E9B47","#0F7173","#5B5EA6","#D95FA0"];
+let tr={glyph:"",say:"",langs:EN,key:"",maskCells:new Set(),covered:new Set(),
+        drawing:false,lastX:0,lastY:0,stroke:0,doneFired:false};
+
+function sizeCanvas(){
+  const r=trCanvas.getBoundingClientRect();
+  trCanvas.width=r.width*devicePixelRatio;
+  trCanvas.height=r.height*devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+function fontFor(px){return `800 ${px}px "Baloo 2","Noto Sans Devanagari",sans-serif`}
+
+function drawGuide(){
+  const w=trCanvas.width/devicePixelRatio, h=trCanvas.height/devicePixelRatio;
+  ctx.clearRect(0,0,w,h);
+  let px=Math.min(w,h)*0.72;
+  ctx.font=fontFor(px);
+  /* shrink if glyph (e.g. क्ष, अः) is wider than canvas */
+  while(ctx.measureText(tr.glyph).width>w*0.86&&px>40){px-=10;ctx.font=fontFor(px)}
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillStyle="rgba(59,42,26,.10)";
+  ctx.fillText(tr.glyph,w/2,h/2);
+  ctx.strokeStyle="rgba(59,42,26,.25)";
+  ctx.lineWidth=1.5;ctx.setLineDash([7,6]);
+  ctx.strokeText(tr.glyph,w/2,h/2);
+  ctx.setLineDash([]);
+  buildMask(px,w,h);
+}
+const CELL=10;
+function buildMask(px,w,h){
+  tr.maskCells.clear();tr.covered.clear();tr.doneFired=false;
+  const off=document.createElement("canvas");
+  off.width=w;off.height=h;
+  const octx=off.getContext("2d");
+  octx.font=fontFor(px);
+  octx.textAlign="center";octx.textBaseline="middle";
+  octx.fillStyle="#000";
+  octx.fillText(tr.glyph,w/2,h/2);
+  const data=octx.getImageData(0,0,w,h).data;
+  for(let y=0;y<h;y+=CELL){
+    for(let x=0;x<w;x+=CELL){
+      const i=((y*w)+x)*4;
+      if(data[i+3]>60)tr.maskCells.add(((x/CELL)|0)+","+((y/CELL)|0));
+    }
+  }
+  updateProgress();
+}
+function markCovered(x,y){
+  const R=2; /* forgiving radius: little fingers wobble */
+  const cx=(x/CELL)|0, cy=(y/CELL)|0;
+  for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){
+    const k=(cx+dx)+","+(cy+dy);
+    if(tr.maskCells.has(k))tr.covered.add(k);
+  }
+  updateProgress();
+}
+function updateProgress(){
+  const p=tr.maskCells.size?tr.covered.size/tr.maskCells.size:0;
+  trFill.style.width=Math.min(100,Math.round(p*100))+"%";
+  if(p>=0.55&&!tr.doneFired){
+    tr.doneFired=true;
+    addStar("tr-"+tr.key+tr.glyph);
+    speak(tr.say,tr.langs);
+    celebrate();
+  }
+}
+function pos(e){
+  const r=trCanvas.getBoundingClientRect();
+  return [e.clientX-r.left,e.clientY-r.top];
+}
+trCanvas.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  trCanvas.setPointerCapture(e.pointerId);
+  tr.drawing=true;tr.stroke++;
+  [tr.lastX,tr.lastY]=pos(e);
+  markCovered(tr.lastX,tr.lastY);
+});
+trCanvas.addEventListener("pointermove",e=>{
+  if(!tr.drawing)return;
+  const [x,y]=pos(e);
+  ctx.strokeStyle=CRAYON[tr.stroke%CRAYON.length];
+  ctx.lineWidth=20;ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.globalAlpha=0.85;
+  ctx.beginPath();ctx.moveTo(tr.lastX,tr.lastY);ctx.lineTo(x,y);ctx.stroke();
+  ctx.globalAlpha=1;
+  tr.lastX=x;tr.lastY=y;
+  markCovered(x,y);
+});
+["pointerup","pointercancel"].forEach(ev=>
+  trCanvas.addEventListener(ev,()=>{tr.drawing=false})
+);
+
+function openTracer(glyph,word,langs,say,key){
+  tr.glyph=glyph;tr.say=say;tr.langs=langs;tr.key=key;tr.stroke=0;
+  trWordEl.innerHTML=glyph+(word?" · "+word:"")+'<small>बोटाने गिरव ✏️</small>';
+  tracer.classList.add("show");
+  requestAnimationFrame(()=>{sizeCanvas();drawGuide();speak(glyph,langs)});
+}
+document.getElementById("trClose").addEventListener("click",()=>{
+  tracer.classList.remove("show");speechSynthesis.cancel();
+});
+document.getElementById("trClear").addEventListener("click",()=>drawGuide());
+document.getElementById("trSpeak").addEventListener("click",()=>speak(tr.say,tr.langs));
+window.addEventListener("resize",()=>{
+  if(tracer.classList.contains("show")){sizeCanvas();drawGuide()}
+});
+
+/* ---------- SHLOKAS ---------- */
+const shlokaWrap=document.getElementById("shlokas");
+SHLOKAS.forEach((s,si)=>{
+  const div=document.createElement("div");
+  div.className="shloka";
+  div.innerHTML=`<h3>${s.name}</h3><div class="sub">${s.sub}</div>`;
+  s.lines.forEach((ln,li)=>{
+    const [text,mean]=ln;
+    const b=document.createElement("button");
+    b.className="line";
+    b.innerHTML=text+`<div class="meaning">${mean}</div>`;
+    b.addEventListener("click",()=>{
+      document.querySelectorAll(".line").forEach(x=>x.classList.remove("playing"));
+      b.classList.add("playing");
+      const u=speak(text,SA);
+      if(u)u.onend=()=>b.classList.remove("playing");
+      addStar("sh"+si+"-"+li);
+    });
+    div.appendChild(b);
+  });
+  shlokaWrap.appendChild(div);
+});
+
+/* ---------- TABS ---------- */
+document.querySelectorAll("nav button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll("nav button").forEach(b=>b.classList.remove("on"));
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+    btn.classList.add("on");
+    document.getElementById("tab-"+btn.dataset.tab).classList.add("on");
+    speechSynthesis.cancel();
+  });
+});
+</script>
+</body>
+</html>
