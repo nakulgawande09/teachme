@@ -13,6 +13,8 @@ export const STORAGE_KEY = 'akshar.v1';
 export const CORRUPT_KEY = 'akshar.v1.corrupt';
 
 export const SETTINGS_SCHEMA = Object.freeze({
+  dailySize:    { kind: 'enum',  of: [2, 3, 5],                             def: 3 },
+  quiz:         { kind: 'bool',                                             def: true },
   sessionMin:   { kind: 'enum',  of: [10, 15, 20],                          def: 15 },
   helpDelaySec: { kind: 'enum',  of: [0, 4, 7],                             def: 7 },
   volume:       { kind: 'num',   min: 0,   max: 1,                          def: 0.8 },
@@ -98,8 +100,20 @@ const clamp = (n, lo, hi, def) => {
 };
 
 /**
+ * Leitner boxes. A letter climbs one box each time it is recalled and drops
+ * to box 1 when it is not — never to 0, because 0 means "never met" and a
+ * child who has met a letter should not be shown it as brand new again.
+ */
+export const BOX_INTERVAL_DAYS = Object.freeze([0, 1, 2, 4, 8, 16]);
+export const MAX_BOX = BOX_INTERVAL_DAYS.length - 1;
+
+/**
  * Validate one letter's telemetry row. Bounds every number so a corrupted or
- * hand-edited blob cannot poison the "struggling letters" heuristic.
+ * hand-edited blob cannot poison the scheduler or the struggling heuristic.
+ *
+ * `box` and `dueAt` were added after v1 shipped. They need no migration:
+ * a row without them validates to box 0 / dueAt 0, which reads as "new and
+ * due now" — exactly right for a letter the scheduler has not seen before.
  */
 export function validateLetterRow(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -110,5 +124,26 @@ export function validateLetterRow(raw) {
     totalMs:     clamp(raw.totalMs, 0, 3.6e7, 0),
     bestMs:      clamp(raw.bestMs, 500, 600000, 0),
     lastAt:      clamp(raw.lastAt, 0, Date.now() + 864e5, 0),
+    box:         clamp(raw.box, 0, MAX_BOX, 0),
+    dueAt:       clamp(raw.dueAt, 0, Date.now() + 400 * 864e5, 0),
   };
+}
+
+/** Today's chosen set, per track. Rebuilt whenever the calendar day turns. */
+export const EMPTY_DAILY = Object.freeze({ day: '', sets: Object.freeze({}) });
+
+export function validateDaily(raw) {
+  if (!raw || typeof raw !== 'object' || typeof raw.day !== 'string') return { day: '', sets: {} };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw.day)) return { day: '', sets: {} };
+
+  const sets = {};
+  const source = raw.sets && typeof raw.sets === 'object' ? raw.sets : {};
+  for (const trackId of Object.keys(source)) {
+    const set = source[trackId];
+    if (!set || !Array.isArray(set.glyphs)) continue;
+    const glyphs = set.glyphs.filter((g) => typeof g === 'string').slice(0, 8);
+    const done = Array.isArray(set.done) ? set.done.filter((g) => glyphs.includes(g)) : [];
+    sets[trackId] = { glyphs, done, closed: set.closed === true };
+  }
+  return { day: raw.day, sets };
 }

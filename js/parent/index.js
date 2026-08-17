@@ -1,7 +1,7 @@
 import { getState, store } from '../core/app.js';
 import { need, setHTML } from '../core/dom.js';
 import { progressCard, voiceCard, card, esc } from './dashboard.js';
-import { sessionCard, contentCard, voiceControlsCard, motionCard } from './settings.js';
+import { dailyCard, sessionCard, contentCard, voiceControlsCard, motionCard } from './settings.js';
 import { isConfigured, payloadText, feedbackUrl, APP_VERSION } from './feedback.js';
 
 /**
@@ -29,6 +29,7 @@ export function unmount() {
 function paint(state) {
   setHTML(need('parentCards'), [
     progressCard(state),
+    dailyCard(state),
     sessionCard(state),
     contentCard(state),
     voiceCard(state),

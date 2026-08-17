@@ -3,6 +3,7 @@ import { reduceTrace } from './reduce/trace.js';
 import { reduceAudio, reduceVoice, reduceShloka } from './reduce/audio.js';
 import { reduceGate, reduceSettings, reduceProgress } from './reduce/parent.js';
 import { reduceSession, reduceLayout, reduceStorageMode } from './reduce/session.js';
+import { reduceDaily, reduceQuiz } from './reduce/daily.js';
 
 /**
  * Root reducer. Every slice returns its own input reference when nothing
@@ -22,13 +23,16 @@ export function reducer(state, action) {
   const session  = reduceSession(navved.session, action);
   const layout   = reduceLayout(navved.layout, action);
   const storage  = reduceStorageMode(navved.storage, action);
+  const daily    = reduceDaily(navved.daily, action);
+  const quiz     = reduceQuiz(navved.quiz, action);
 
   if (
     navved === state &&
     trace === state.trace && audio === state.audio && voice === state.voice &&
     shloka === state.shloka && gate === state.gate && settings === state.settings &&
     progress === state.progress && session === state.session &&
-    layout === state.layout && storage === state.storage
+    layout === state.layout && storage === state.storage &&
+    daily === state.daily && quiz === state.quiz
   ) {
     return state;
   }
@@ -36,5 +40,6 @@ export function reducer(state, action) {
   return {
     ...navved,
     trace, audio, voice, shloka, gate, settings, progress, session, layout, storage,
+    daily, quiz,
   };
 }

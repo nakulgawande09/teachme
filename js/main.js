@@ -1,5 +1,7 @@
-import { dispatch, store } from './core/app.js';
+import { dispatch, store, getState } from './core/app.js';
 import { A } from './core/actions.js';
+import * as router from './core/router.js';
+import { TRACKS, TRACK_IDS } from './data/tracks.js';
 import { slateSize } from './trace/geometry.js';
 import { startRender, lists } from './render/index.js';
 import { bindEvents } from './render/events.js';
@@ -17,6 +19,12 @@ async function boot() {
   dispatch(A.SETTINGS_LOAD, { settings: data.settings });
   dispatch(A.PROGRESS_LOAD, { progress: data.progress });
   dispatch(A.STORAGE_MODE, { mode });
+
+  // Derived, not stored: a child who has never touched a letter is on their
+  // first run. Keeping this in memory only would replay the walkthrough on
+  // every single launch; giving it its own stored flag would then disagree
+  // with the progress a parent had just reset.
+  if (Object.keys(data.progress.letters).length > 0) dispatch(A.FIRST_RUN_DONE);
   onStorageMode((next) => dispatch(A.STORAGE_MODE, { mode: next }));
 
   dispatch(A.LAYOUT, {
@@ -32,6 +40,7 @@ async function boot() {
 
   bindLifecycle();
   session.start();
+  firstRunWalkthrough();
 
   // Voices resolve asynchronously; publish the honest tier list as soon as
   // they land, so the parent-zone readout is never stale.
@@ -40,6 +49,22 @@ async function boot() {
 
   registerServiceWorker();
   runDevTools();
+}
+
+/**
+ * On a very first launch, skip the choice entirely and walk the child through
+ * one letter: hear it, trace it, watch it come alive. A three-year-old handed
+ * three cards and no instructions taps at random; handed one thing to do,
+ * they do it. The picker appears from the second launch onward.
+ */
+function firstRunWalkthrough() {
+  const state = getState();
+  if (!state.firstRun) return;
+
+  const trackId = TRACK_IDS.find((id) => state.settings.tracks[id] && TRACKS[id].traceable);
+  if (!trackId) return;
+
+  router.pickTrack(trackId);
 }
 
 function bindLifecycle() {

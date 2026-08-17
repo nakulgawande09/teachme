@@ -1,5 +1,6 @@
 import { store } from '../core/app.js';
-import { need, setAttrs, setVars, setText } from '../core/dom.js';
+import { need, setAttrs, setVars, setText, setHTML } from '../core/dom.js';
+import { icon } from '../data/icons.js';
 import { attrsFor, varsFor } from './attrs.js';
 import * as lists from './lists.js';
 import { TRACKS, lettersOf } from '../data/tracks.js';
@@ -21,8 +22,10 @@ export function startRender() {
     switch (state.screen) {
       case 'home':   lists.renderTracks(state); break;
       case 'grid':   lists.renderGrid(state); break;
-      case 'listen': lists.renderListen(state); break;
+      case 'listen': lists.renderListen(state); paintDailyDots(state, 'listenDots'); break;
       case 'trace':  lists.renderBeads(state); break;
+      case 'quiz':   lists.renderQuiz(state); paintDailyDots(state, 'quizDots'); break;
+      case 'done':   lists.renderDone(state); break;
       case 'shloka': lists.renderShlokas(state); break;
       default: break;
     }
@@ -36,11 +39,31 @@ export function startRender() {
   paint(store.getState());
 }
 
+/** Today's dots, so the finish line is visible from inside the activity too. */
+function paintDailyDots(state, hostId) {
+  const { daily } = state;
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  if (!daily.active || !daily.items.length) {
+    host.replaceChildren();
+    return;
+  }
+  lists.renderDots(hostId, daily.items.length, daily.done.length, daily.index);
+}
+
 function paintCelebrate(state) {
   const letter = lettersOf(state.trackId)[state.letterIndex];
   if (!letter) return;
   setText(need('celebrateGlyph'), letter.glyph);
   setText(need('celebrateKeyword'), letter.keyword || '');
+  paintDailyDots(state, 'celebrateDots');
+
+  // In a daily session the "next" button carries the child through today's
+  // set and then stops. Outside one it wraps forever, which is fine when a
+  // grown-up has deliberately opened the explore door.
+  const { daily } = state;
+  const last = daily.active && daily.done.length >= daily.items.length;
+  setHTML(need('celebrateNextIcon'), icon(last ? 'check' : 'next', 42));
 }
 
 function paintBreak(state) {

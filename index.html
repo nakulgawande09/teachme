@@ -36,7 +36,7 @@
 <div class="measure">
 
   <!-- ── 01 track picker ────────────────────────────────────────────── -->
-  <section class="screen screen--home" data-screen-label="01 track picker">
+  <section data-motion class="screen screen--home" data-screen-label="01 track picker">
     <header class="bar">
       <div class="brand">
         <span class="brand__dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -56,7 +56,7 @@
   </section>
 
   <!-- ── 02 letter grid ─────────────────────────────────────────────── -->
-  <section class="screen screen--grid" data-screen-label="02 letter grid">
+  <section data-motion class="screen screen--grid" data-screen-label="02 letter grid">
     <header class="bar">
       <button class="btn-round" type="button" data-action="go-home" aria-label="Home">
         <span data-icon="home"></span>
@@ -78,16 +78,20 @@
   </section>
 
   <!-- ── 03 listen card ─────────────────────────────────────────────── -->
-  <section class="screen screen--listen" data-screen-label="03 listen card">
-    <header class="bar bar--start">
+  <section data-motion class="screen screen--listen" data-screen-label="03 listen card">
+    <header class="bar">
       <button class="btn-round" type="button" data-action="go-grid" aria-label="Back">
         <span data-icon="back"></span>
+      </button>
+      <span class="dots" id="listenDots" aria-hidden="true"></span>
+      <button class="btn-round" type="button" data-action="go-home" aria-label="Home">
+        <span data-icon="home"></span>
       </button>
     </header>
 
     <div class="spacer"></div>
     <div class="listen">
-      <div class="listen__glyph" id="listenGlyph"></div>
+      <div class="listen__glyph" id="listenGlyph" data-motion></div>
       <div class="listen__sound" id="listenSound"></div>
       <div class="listen__art" id="listenArt" aria-hidden="true"></div>
       <div class="listen__keyword" id="listenKeyword"></div>
@@ -100,16 +104,18 @@
               aria-label="Hear this letter">
         <span class="audio-ring" aria-hidden="true"></span>
         <span data-icon="speaker" data-icon-size="42"></span>
+        <span class="finger" data-motion aria-hidden="true"></span>
       </button>
       <button class="btn-big btn-big--peacock" type="button" data-action="go-trace"
               id="btnTrace" aria-label="Trace this letter">
         <span data-icon="trace" data-icon-size="42"></span>
+        <span class="finger" data-motion aria-hidden="true"></span>
       </button>
     </div>
   </section>
 
   <!-- ── 04 trace ───────────────────────────────────────────────────── -->
-  <section class="screen screen--trace" data-screen-label="04 trace">
+  <section data-motion class="screen screen--trace" data-screen-label="04 trace">
     <header class="bar">
       <button class="btn-round" type="button" data-action="go-listen" aria-label="Back">
         <span data-icon="back"></span>
@@ -118,6 +124,9 @@
       <button class="btn-round" type="button" data-action="replay-demo"
               aria-label="Show me again">
         <span data-icon="replay"></span>
+      </button>
+      <button class="btn-round" type="button" data-action="go-home" aria-label="Home">
+        <span data-icon="home"></span>
       </button>
     </header>
 
@@ -156,8 +165,49 @@
     </div>
   </section>
 
+  <!-- ── 04b recall ─────────────────────────────────────────────────── -->
+  <!-- Error-free by construction: a wrong tap replays the sound and the card
+       settles back. No score, no buzzer, nothing blocked. -->
+  <section data-motion class="screen screen--quiz" data-screen-label="04b recall">
+    <header class="bar">
+      <button class="btn-round" type="button" data-action="go-home" aria-label="Home">
+        <span data-icon="home"></span>
+      </button>
+      <span class="dots" id="quizDots" aria-hidden="true"></span>
+      <span class="bar__spacer"></span>
+    </header>
+
+    <div class="spacer"></div>
+    <div class="quiz">
+      <div class="quiz__prompt" id="quizPrompt"></div>
+      <div class="quiz__cards" id="quizCards"></div>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- ── 09 today is done ───────────────────────────────────────────── -->
+  <section data-motion class="screen screen--done" data-screen-label="09 today is done">
+    <div class="spacer"></div>
+    <div class="done" data-motion>
+      <div class="done__glyphs" id="doneGlyphs"></div>
+      <div class="ribbon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <h2 class="done__title" id="doneTitle">आजचं काम झालं!</h2>
+      <p class="done__body" id="doneBody"></p>
+    </div>
+    <div class="spacer"></div>
+    <div class="done__actions">
+      <button class="btn-big btn-big--leaf btn-big--xl" type="button"
+              data-action="finish-day" aria-label="Finished">
+        <span data-icon="check" data-icon-size="52"></span>
+      </button>
+      <button class="link-grown" type="button" data-action="go-explore">
+        Grown-up: keep exploring the letters
+      </button>
+    </div>
+  </section>
+
   <!-- ── 05 shloka ──────────────────────────────────────────────────── -->
-  <section class="screen screen--shloka" data-screen-label="05 shloka">
+  <section data-motion class="screen screen--shloka" data-screen-label="05 shloka">
     <header class="bar">
       <button class="btn-round" type="button" data-action="go-home" aria-label="Home">
         <span data-icon="home"></span>
@@ -188,6 +238,7 @@
     <div class="celebrate__glyph" id="celebrateGlyph"></div>
     <div class="ribbon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
     <div class="celebrate__keyword" id="celebrateKeyword"></div>
+    <span class="dots dots--lg" id="celebrateDots" aria-hidden="true"></span>
   </div>
   <div class="celebrate__actions">
     <button class="btn-big btn-big--sm" type="button" data-action="trace-again"
@@ -195,8 +246,8 @@
       <span data-icon="replay" data-icon-size="34"></span>
     </button>
     <button class="btn-big btn-big--leaf btn-big--lg" type="button" data-action="next-letter"
-            aria-label="Next letter">
-      <span data-icon="next" data-icon-size="42"></span>
+            aria-label="Next">
+      <span id="celebrateNextIcon" data-icon="next" data-icon-size="42"></span>
     </button>
     <button class="btn-big btn-big--sm" type="button" data-action="go-home"
             aria-label="Home">

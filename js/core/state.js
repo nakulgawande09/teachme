@@ -39,6 +39,25 @@ export const INITIAL = Object.freeze({
 
   shloka: Object.freeze({ playingLine: -1, loadingLine: -1 }),
 
+  /* Today's bounded set. `items` is [{glyph, kind:'new'|'review'}]; `done`
+     is the glyphs finished today. When index reaches items.length the child
+     has finished — that finish line is the whole point of the feature. */
+  daily: Object.freeze({
+    trackId: null,
+    items: Object.freeze([]),
+    done: Object.freeze([]),
+    index: 0,
+    active: false,
+  }),
+
+  quiz: Object.freeze({
+    kind: null,           // sound2letter | letter2picture
+    answer: null,
+    cards: Object.freeze([]),
+    wrong: Object.freeze([]),
+    solved: false,
+  }),
+
   gate: Object.freeze({ a: 0, b: 0, answer: 0, choices: Object.freeze([]), wrong: false, misses: 0 }),
 
   session: Object.freeze({ startedAt: 0, activeMs: 0, extensions: 0, breakDue: false }),

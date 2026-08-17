@@ -45,6 +45,31 @@ Rendering is **attributes on `#app` driven by CSS selectors**, not style writes:
 engines draw imperatively and report only three moments (stroke accepted, stroke rejected,
 glyph finished).
 
+## How a day works
+
+Home leads with **today's letters** — a small set the app chose, shown on each track card.
+Tapping the card starts them; finishing them shows a closing screen that says *done* and hands
+the child one small thing to go and do away from the phone. After that, the same card opens the
+full grid, so free exploration is what is left once the work is finished rather than the other
+way round.
+
+A letter the child has never met is **taught**: hear it, trace it, watch it come alive. A letter
+they have met before is **asked** — "which one says this?" — because being asked to remember is
+what makes it stick, while being shown a letter again is the weakest thing the app can do. Both
+question directions exist (sound → letter, letter → picture) and both are error-free: a wrong
+tap replays the sound and the card settles back. Nothing is scored, nothing is blocked.
+
+Letters come back on Leitner intervals — 1 day, then 2, 4, 8, 16 — and drop back to tomorrow if
+they needed a nudge. `js/features/schedule.js` is pure and unit-tested, so "why is she seeing
+this letter today?" always has an answer.
+
+The teaching order is **not** alphabetical. English opens `satpin`, which builds *sat, tin, pan,
+nap* — a real word in the first week instead of after twenty-six letters. Marathi does every
+स्वर before any व्यंजन, and leaves ङ ञ क्ष ज्ञ until last because they only appear in conjuncts.
+The grid still lists letters in the familiar order, because that is what a parent expects and
+what a wall chart at home will match; only the daily set follows the sequence. See
+`js/data/sequence.js`.
+
 ## Three decisions worth knowing before you change anything
 
 **Silence beats a wrong sound.** Almost no device ships a Marathi voice. The old build let the
@@ -67,6 +92,13 @@ designer to sign off, then flip the boolean. A test guards this.
 last stroke lands, the child's crayon lifts and blurs away and the correct letterform fades up
 underneath it in the track colour, exactly where their hand just was. Progress is one amber dot
 on the grid card — no count, no score. Both engines converge on the same `comeAlive()`.
+
+**Everything that ends, ends on purpose.** The thing that makes an app hard to put down is a
+missing stopping cue, so this one has several: today's set is finite and its dots are visible
+from inside every activity; the celebration's green button walks the child through the set and
+then turns into a tick rather than wrapping forever; the closing screen points off the device;
+and the session timer still runs underneath all of it. If you add a feature that can go on
+indefinitely, give it an end first.
 
 ## Still open
 

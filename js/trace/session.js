@@ -9,6 +9,7 @@ import { pickEngine, strokesFor } from '../data/strokes.js';
 import { CRAY } from './crayon.js';
 import * as progress from '../storage/progress.js';
 import { snapshot } from '../storage/store.js';
+import * as daily from '../features/daily.js';
 
 /**
  * The trace lifecycle, above whichever engine is running. This module owns the
@@ -195,6 +196,13 @@ function comeAlive() {
 
   const { trackId, letter, track } = current;
   progress.recordCompletion(trackId, letter.glyph, performance.now() - attemptStart);
+
+  // Tracing a letter counts as recalling it: the box moves on and the letter
+  // comes round again in a day, then two, then four.
+  const state = getState();
+  if (state.daily.active && daily.current()?.glyph === letter.glyph) daily.complete(true);
+  if (state.firstRun) dispatch(A.FIRST_RUN_DONE);
+
   // Storage is the source of truth, so state has to be told. Without this the
   // grid's amber dot only appears after a reload.
   dispatch(A.PROGRESS_LOAD, { progress: snapshot().progress });

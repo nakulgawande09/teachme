@@ -8,7 +8,20 @@
 #app[data-screen="grid"]   .screen--grid,
 #app[data-screen="listen"] .screen--listen,
 #app[data-screen="trace"]  .screen--trace,
-#app[data-screen="shloka"] .screen--shloka{ display:flex }
+#app[data-screen="quiz"]   .screen--quiz,
+#app[data-screen="done"]   .screen--done,
+#app[data-screen="shloka"] .screen--shloka{ display:flex; animation:akFade 260ms ease both }
+
+/* Screens cross-fade and settle rather than snapping, so a child can follow
+   where the thing they tapped went. Short enough not to feel like waiting.
+   Every animated element carries data-motion so the opt-in reduced-motion
+   rule in base.css reaches it; ?selftest=1 fails the build if one is missed. */
+@keyframes akFade{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
+
+/* The listen glyph grows in from roughly the size it was on the grid card,
+   which reads as the letter travelling rather than a new page appearing. */
+.listen__glyph{ animation:akGrow 320ms var(--settle) both }
+@keyframes akGrow{ from{ transform:scale(.45); opacity:0 } to{ transform:scale(1); opacity:1 } }
 
 /* Only the grid and shloka screens scroll. Child-facing play screens fit. */
 .scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch }

@@ -1,6 +1,6 @@
 import {
   CURRENT_VERSION, STORAGE_KEY, CORRUPT_KEY,
-  validateSettings, validateLetterRow,
+  validateSettings, validateLetterRow, validateDaily,
   SETTINGS_DEFAULTS, EMPTY_PROGRESS, EMPTY_USAGE,
 } from './schema.js';
 import { ALL_LETTER_KEYS, TRACK_IDS } from '../data/tracks.js';
@@ -29,6 +29,7 @@ function fresh() {
     settings: { ...SETTINGS_DEFAULTS },
     progress: { done: {}, letters: {} },
     usage: { ...EMPTY_USAGE, days: {} },
+    daily: { day: '', sets: {} },
   };
 }
 
@@ -126,6 +127,7 @@ function normalise(data) {
   out.usage.sessions = Math.max(0, Math.min(1e6, Number(usage.sessions) || 0));
   out.usage.lastSessionAt = Math.max(0, Number(usage.lastSessionAt) || 0);
   out.usage.days = trimDays(usage.days, KEEP_DAYS);
+  out.daily = validateDaily(data.daily);
 
   return out;
 }
@@ -219,7 +221,12 @@ function persist(data) {
 /* ── parent-zone data controls ─────────────────────────────────────────── */
 
 export function resetProgress() {
-  cache = { ...cache, progress: { done: {}, letters: {} }, usage: { ...EMPTY_USAGE, days: {} } };
+  cache = {
+    ...cache,
+    progress: { done: {}, letters: {} },
+    usage: { ...EMPTY_USAGE, days: {} },
+    daily: { day: '', sets: {} },
+  };
   flush();
   return cache;
 }

@@ -147,6 +147,19 @@
 .slate .finger{ left:50%; bottom:18px; margin-left:-22px }
 #app[data-stuck="1"] .slate .finger{ opacity:1; animation:akFinger 1.5s ease-in-out infinite }
 
+/* First run walks a child through hear → trace → alive once, wordlessly. The
+   bobbing fingertip is the only teacher, and it points at exactly one thing at
+   a time: the speaker until they have heard the letter, then the trace button,
+   then the slate. Two fingers at once would teach nothing. */
+.btn-big .finger{ left:50%; bottom:-20px; margin-left:-22px }
+#app[data-coach="hear"]  [data-action="say-letter"] .finger,
+#app[data-coach="trace"] [data-action="go-trace"] .finger{
+  opacity:1; animation:akFinger 1.6s ease-in-out infinite;
+}
+#app[data-first-run="1"][data-screen="trace"][data-stage="trace"] .slate .finger{
+  opacity:1; animation:akFinger 1.5s ease-in-out infinite;
+}
+
 /* ── letter grid ───────────────────────────────────────────────────────── */
 .grid{
   display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
@@ -212,6 +225,69 @@
 
 .eyebrow{
   margin:0; font:600 11px var(--face-ui); letter-spacing:.14em; color:var(--ink-4);
+}
+
+/* ── today's set ───────────────────────────────────────────────────────── */
+
+/* The finish line, made visible. Three dots a child can count is the stopping
+   cue that a scrolling grid of forty-eight letters never gives them. */
+.dots{ display:flex; gap:7px; align-items:center; justify-content:center }
+.dots i{
+  width:12px; height:12px; border-radius:50%; display:block;
+  border:2px solid var(--bead-off); background:transparent;
+}
+.dots i[data-on="1"]{ background:var(--haldi); border-color:var(--haldi) }
+.dots i[data-current="1"]{ box-shadow:0 0 0 4px var(--halo) }
+.dots--lg{ margin-top:var(--s4) }
+.dots--lg i{ width:16px; height:16px }
+
+.track-card__today{ display:flex; align-items:center; gap:10px }
+.track-card__today span{
+  font:400 clamp(24px,7vw,34px)/1 var(--track-font); color:var(--track-color); opacity:.85;
+}
+.track-card__today span[data-done="1"]{ opacity:.28 }
+.track-card__label{
+  font:500 11px var(--face-ui); letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-4);
+}
+
+/* ── recall ────────────────────────────────────────────────────────────── */
+.quiz{ display:flex; flex-direction:column; align-items:center; gap:clamp(20px,5vh,40px) }
+.quiz__prompt{
+  display:flex; flex-direction:column; align-items:center; gap:var(--s3);
+  font:400 clamp(80px,26vw,150px)/1 var(--track-font); color:var(--track-color);
+}
+.quiz__cards{ display:flex; gap:clamp(14px,5vw,26px); justify-content:center; flex-wrap:wrap }
+
+.qcard{
+  width:clamp(120px,38vw,168px); aspect-ratio:1/1; border-radius:var(--r-card);
+  background:var(--card); border:1px solid var(--line); box-shadow:var(--sh-2);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:transform var(--press) ease, box-shadow var(--press) ease, opacity 300ms ease;
+}
+.qcard:active{ transform:translateY(2px); box-shadow:var(--sh-press) }
+.qcard__glyph{ font:400 clamp(56px,17vw,88px)/1 var(--track-font); color:var(--track-color) }
+.qcard__art{ font-size:clamp(48px,15vw,76px); line-height:1 }
+/* A wrong tap shakes once and settles. No red, no cross, no removal — the
+   card stays tappable, because the answer to "not that one" is another go. */
+.qcard[data-wrong="1"]{ animation:akShake 400ms ease }
+.qcard[data-right="1"]{
+  border:2px solid var(--leaf); box-shadow:var(--sh-leaf);
+  animation:akNod 900ms var(--settle) both;
+}
+
+/* ── today is done ─────────────────────────────────────────────────────── */
+.done{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--s3);
+       animation:akRise 420ms var(--settle) both }
+.done__glyphs{ display:flex; gap:clamp(10px,4vw,22px); align-items:baseline }
+.done__glyphs span{ font:400 clamp(48px,15vw,88px)/1 var(--track-font); color:var(--track-color) }
+.done__title{ margin:var(--s3) 0 0; font:400 clamp(24px,7vw,32px)/1.25 var(--face-deva) }
+.done__body{
+  margin:0; max-width:300px; font:400 16px/1.55 var(--face-ui); color:var(--ink-2);
+}
+.done__body b{ font:400 24px var(--track-font); font-weight:400 }
+.done__actions{
+  display:flex; flex-direction:column; align-items:center; gap:var(--s2); flex:none;
 }
 
 /* ── celebration ribbon: five block-print bars, the entire reward graphic ─ */

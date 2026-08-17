@@ -10,6 +10,8 @@ import { say, refreshTiers } from '../audio/say.js';
 import { TRACKS, lettersOf } from '../data/tracks.js';
 import { resetProgress, resetEverything, exportJSON, snapshot } from '../storage/store.js';
 import { invalidate } from './lists.js';
+import * as daily from '../features/daily.js';
+import { coach } from './coach.js';
 
 /**
  * One delegated click listener and a dispatch table. `?selftest=1` asserts
@@ -25,6 +27,7 @@ const sayLetter = () => {
   // Sound before name: what a letter SAYS is the thing being taught.
   const text = soundFirst && letter.keyword ? letter.keyword : letter.glyph;
   say(text, track.lang, { key: `${track.id}/${letter.glyph}/name` });
+  coach('trace');
 };
 
 export const ACTIONS = {
@@ -46,21 +49,26 @@ export const ACTIONS = {
     router.goHome();
     session.checkAtBoundary();
   },
+  // Inside today's set there is no grid behind the listen card, so "back"
+  // means back out to the home screen rather than into a wall of letters.
   'go-grid': () => {
-    const { trackId } = getState();
-    router.navigate({ screen: trackId === 'sa' ? 'shloka' : 'grid' });
+    if (getState().daily.active) return ACTIONS['go-home']();
+    router.openGrid();
+    session.checkAtBoundary();
+  },
+  'go-explore': () => {
+    router.openGrid();
     session.checkAtBoundary();
   },
   'go-listen': () => {
     router.openListen(getState().letterIndex);
     session.checkAtBoundary();
   },
-  'go-trace': () => router.openTrace(),
-  'open-listen': (arg) => {
-    router.openListen(Number(arg));
-    // Sound fires on arrival: the screen is audio-first, not tap-then-audio.
-    setTimeout(sayLetter, 120);
+  'go-trace': () => {
+    coach(null);
+    router.openTrace();
   },
+  'open-listen': (arg) => router.openListen(Number(arg)),
   'replay-demo': () => trace.replayDemo(),
 
   'trace-again': () => router.traceAgain(),
@@ -71,6 +79,14 @@ export const ACTIONS = {
 
   'play-line': (arg) => shloka.playLine(Number(arg)),
   'play-all': () => shloka.playAll(),
+
+  'quiz-replay': () => sayQuizPrompt(),
+  'quiz-answer': (value) => answerQuiz(value),
+
+  'finish-day': () => {
+    dispatch(A.DAILY_END);
+    router.goHome();
+  },
 
   'end-session': () => session.end(),
   'five-more': () => session.extend(),
@@ -114,6 +130,46 @@ export const ACTIONS = {
   }),
 };
 
+/* ── recall ────────────────────────────────────────────────────────────── */
+
+function sayQuizPrompt() {
+  const { quiz, trackId } = getState();
+  if (!quiz.answer) return;
+  const track = TRACKS[trackId];
+  const letter = lettersOf(trackId).find((l) => l.glyph === quiz.answer);
+  if (!letter) return;
+
+  // sound → letter asks with the keyword, which carries the phoneme in a real
+  // word. letter → picture asks with the letter itself.
+  const text = quiz.kind === 'sound2letter' ? (letter.keyword || letter.glyph) : letter.glyph;
+  say(text, track.lang, { key: `${trackId}/${letter.glyph}/name` });
+}
+
+/**
+ * A wrong tap replays the sound and lets the card settle back. That is the
+ * entire consequence — no score, no lockout, no red. The child can tap every
+ * card in turn and still arrive somewhere good, which is the point: at this
+ * age a question should be a nudge to listen again, not a test to fail.
+ */
+function answerQuiz(value) {
+  const { quiz } = getState();
+  if (!quiz.answer || quiz.solved) return;
+
+  if (value !== quiz.answer) {
+    dispatch(A.QUIZ_WRONG, { value });
+    sayQuizPrompt();
+    return;
+  }
+
+  dispatch(A.QUIZ_SOLVED);
+  // Recalled unaided the first time counts as a promotion; needing a nudge
+  // sends the letter back to tomorrow rather than forward.
+  daily.complete(quiz.wrong.length === 0);
+  dispatch(A.PROGRESS_LOAD, { progress: snapshot().progress });
+  sayQuizPrompt();
+  setTimeout(() => router.advanceDaily(), 1400);
+}
+
 const coerce = (raw) => {
   if (raw === 'true') return true;
   if (raw === 'false') return false;
@@ -155,6 +211,18 @@ async function openParent() {
 
 export function bindEvents() {
   const root = need('app');
+
+  /* Device TTS takes tens to hundreds of milliseconds to start, so tap-and-
+     hear never feels simultaneous with the finger. We cannot make synthesis
+     faster, but we can make the FEEDBACK immediate: light the speaker's ring
+     on pointerdown, before the audio layer has been asked for anything. The
+     real status overwrites this a moment later either way. */
+  root.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (!/^(say-|quiz-replay|play-)/.test(el.dataset.action)) return;
+    if (getState().audio.status === 'idle') dispatch(A.AUDIO_STATUS, { status: 'loading' });
+  }, { passive: true });
 
   root.addEventListener('click', (e) => {
     const el = e.target.closest('[data-action]');

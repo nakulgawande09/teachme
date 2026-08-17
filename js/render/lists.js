@@ -2,6 +2,7 @@ import { el, need, setAttr, setText, setHTML, replaceChildren } from '../core/do
 import { TRACKS, TRACK_IDS, lettersOf } from '../data/tracks.js';
 import { SHLOKAS } from '../data/shlokas.js';
 import { icon } from '../data/icons.js';
+import { setFor } from '../features/daily.js';
 
 /**
  * List rendering. Rebuilds are signature-gated: between rebuilds only
@@ -24,11 +25,24 @@ export const invalidate = () => signatures.clear();
 
 export function renderTracks(state) {
   const enabled = TRACK_IDS.filter((id) => state.settings.tracks[id]);
-  if (!changed('tracks', enabled.join(','))) return;
+
+  // The set is part of the signature so finishing a letter re-paints the card
+  // and the child can watch today's dots fill in from the home screen.
+  const sets = Object.fromEntries(
+    enabled.filter((id) => TRACKS[id].traceable).map((id) => [id, setFor(id)])
+  );
+  const sig = enabled.map((id) => {
+    const s = sets[id];
+    return s ? `${id}:${s.items.map((i) => i.glyph).join('')}:${s.done.join('')}` : id;
+  }).join('|');
+  if (!changed('tracks', sig)) return;
 
   const host = need('trackList');
   replaceChildren(host, enabled.map((id) => {
     const track = TRACKS[id];
+    const set = sets[id];
+    const complete = set && set.items.length && set.done.length >= set.items.length;
+
     const card = el('button', {
       class: 'track-card',
       type: 'button',
@@ -38,18 +52,44 @@ export function renderTracks(state) {
       'aria-label': track.name,
     });
 
-    const body = id === 'sa'
-      ? `<div class="track-card__lines">गुरुर्ब्रह्मा<br>गुरुर्विष्णुः</div>`
-      : `<div class="track-card__preview">${track.preview.map((g) => `<span>${g}</span>`).join('')}</div>`;
-
     card.innerHTML =
       `<span class="track-card__glyph">${track.sample}</span>
-       <span class="track-card__body">${body}<span class="track-card__rule"></span></span>
+       <span class="track-card__body">${bodyFor(track, set, complete)}<span class="track-card__rule"></span></span>
        <button class="btn-round btn-round--haldi" type="button" data-action="say-track-name"
                data-arg="${id}" aria-label="Hear ${track.name}">${icon('speaker')}</button>
        <span class="finger" data-motion aria-hidden="true"></span>`;
     return card;
   }));
+}
+
+function bodyFor(track, set, complete) {
+  // Sanskrit has no daily set — it is shlokas, which are recited whole rather
+  // than learned a letter at a time.
+  if (!set || !set.items.length) {
+    return track.id === 'sa'
+      ? `<div class="track-card__lines">गुरुर्ब्रह्मा<br>गुरुर्विष्णुः</div>`
+      : `<div class="track-card__preview">${track.preview.map((g) => `<span>${g}</span>`).join('')}</div>`;
+  }
+
+  const glyphs = set.items
+    .map((item) => `<span data-done="${set.done.includes(item.glyph) ? 1 : 0}">${item.glyph}</span>`)
+    .join('');
+
+  return `<span class="track-card__label">${complete ? 'all done — explore' : 'today'}</span>
+          <span class="track-card__today">${glyphs}</span>`;
+}
+
+/** The finish line, as dots a child can count. */
+export function renderDots(hostId, total, doneCount, currentIndex = -1) {
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  if (host.children.length !== total) {
+    replaceChildren(host, Array.from({ length: total }, () => el('i')));
+  }
+  Array.from(host.children).forEach((dot, i) => {
+    setAttr(dot, 'data-on', i < doneCount ? '1' : '');
+    setAttr(dot, 'data-current', i === currentIndex ? '1' : '');
+  });
 }
 
 /* ── 02 letter grid ────────────────────────────────────────────────────── */
@@ -144,6 +184,91 @@ function hintFor(state) {
   if (state.trace.stage === 'alive') return 'beautiful';
   if (state.trace.stage === 'demo') return 'watch how it goes';
   return state.trace.engine === 'stroke' ? 'your turn — follow the dots' : 'your turn — colour it in';
+}
+
+/* ── 04b recall ────────────────────────────────────────────────────────── */
+
+export function renderQuiz(state) {
+  const { kind, cards, answer, wrong, solved } = state.quiz;
+  if (!kind || !cards.length) return;
+
+  const target = lettersOf(state.trackId).find((l) => l.glyph === answer);
+  const prompt = need('quizPrompt');
+
+  // sound → letter leads with the speaker, because the question IS the sound.
+  // letter → picture leads with the glyph, and the speaker is a hint, not the
+  // question, so it sits smaller underneath.
+  setHTML(prompt, kind === 'sound2letter'
+    ? `<button class="btn-big btn-big--haldi" type="button" data-action="quiz-replay"
+               aria-label="Play the sound again">
+         <span class="audio-ring" aria-hidden="true"></span>${icon('speaker', 42)}
+       </button>
+       <span class="listen__sound">${target ? target.sound : ''}</span>`
+    : `<span>${answer}</span>
+       <button class="btn-round btn-round--haldi" type="button" data-action="quiz-replay"
+               aria-label="Play the sound again">
+         <span class="audio-ring" aria-hidden="true"></span>${icon('speaker')}
+       </button>`);
+
+  const sig = `${kind}|${cards.map((c) => c.value).join('')}`;
+  const host = need('quizCards');
+  if (changed('quiz', sig)) {
+    replaceChildren(host, cards.map((card) => {
+      const node = el('button', {
+        class: 'qcard',
+        type: 'button',
+        'data-motion': '',
+        'data-action': 'quiz-answer',
+        'data-arg': card.value,
+        'aria-label': card.show === 'art' ? (card.keyword || card.value) : card.value,
+      });
+      node.innerHTML = card.show === 'art'
+        ? `<span class="qcard__art">${card.art || ''}</span>`
+        : `<span class="qcard__glyph">${card.glyph}</span>`;
+      return node;
+    }));
+  }
+
+  host.querySelectorAll('.qcard').forEach((node) => {
+    const value = node.dataset.arg;
+    setAttr(node, 'data-wrong', wrong.includes(value) ? '1' : '');
+    setAttr(node, 'data-right', solved && value === answer ? '1' : '');
+  });
+}
+
+/* ── 09 today is done ──────────────────────────────────────────────────── */
+
+/**
+ * The closing screen. It exists to say the word "done" out loud, and then to
+ * hand the child something to do that is not the phone — which is the only
+ * honest answer to "how do I stop this being addictive".
+ */
+export function renderDone(state) {
+  const { daily } = state;
+  const glyphs = daily.items.map((i) => i.glyph);
+  setHTML(need('doneGlyphs'), glyphs.map((g) => `<span>${g}</span>`).join(''));
+
+  const first = daily.items[0];
+  const letter = first && lettersOf(daily.trackId || state.trackId).find((l) => l.glyph === first.glyph);
+  setHTML(need('doneBody'), offDeviceTask(letter, glyphs));
+}
+
+/* One small, specific, physical thing. Specific matters: "go and play" gets
+   ignored, "find three things in the kitchen that start with म" gets done. */
+const TASKS = [
+  (g, kw) => `Now go and find three things in the house that start with <b>${g}</b>.`,
+  (g) => `Draw <b>${g}</b> in the air with your whole arm. Big as you can.`,
+  (g, kw) => kw
+    ? `Go and tell someone the word <b>${kw}</b>, and see if they can guess the letter.`
+    : `Go and draw <b>${g}</b> for someone and see if they know it.`,
+  (g) => `Look for <b>${g}</b> on a packet or a sign before dinner.`,
+];
+
+function offDeviceTask(letter, glyphs) {
+  const glyph = letter ? letter.glyph : glyphs[0] || '';
+  // Rotates by day so the same suggestion does not arrive every afternoon.
+  const pick = TASKS[Math.floor(Date.now() / 864e5) % TASKS.length];
+  return pick(glyph, letter && letter.keyword);
 }
 
 /* ── 05 shloka ─────────────────────────────────────────────────────────── */

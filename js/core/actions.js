@@ -18,6 +18,15 @@ export const A = Object.freeze({
 
   SHLOKA_LINE:    'shloka/line',      // {playing, loading}
 
+  DAILY_START:    'daily/start',      // {trackId, items}
+  DAILY_ADVANCE:  'daily/advance',    // {index}
+  DAILY_DONE:     'daily/done',       // {glyph}
+  DAILY_END:      'daily/end',
+
+  QUIZ_ASK:       'quiz/ask',         // {kind, answer, cards}
+  QUIZ_WRONG:     'quiz/wrong',       // {value}
+  QUIZ_SOLVED:    'quiz/solved',
+
   GATE_OPEN:      'gate/open',        // {question}
   GATE_WRONG:     'gate/wrong',       // {on}
   GATE_RESET:     'gate/reset',

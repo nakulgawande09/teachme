@@ -18,6 +18,35 @@ const seg = (key, options, current) =>
             aria-pressed="${String(o.value) === String(current)}"
             ${o.disabled ? 'disabled' : ''}>${esc(o.label)}</button>`).join('')}</div>`;
 
+/**
+ * The daily portion. This is the app's main answer to "don't let it become a
+ * thing they can't put down": a small set with a visible end, rather than a
+ * grid of forty-eight letters that never runs out.
+ */
+export function dailyCard(state) {
+  return card('Today\'s letters', `
+    <p class="pcard__body">Each day the app picks a few letters — some new, some due to come
+      round again — and says <b>done</b> when they are finished. Four or five at a time is what
+      children of this age actually hold on to, and finishing something is a much better way to
+      end than running out of time.</p>
+    ${seg('dailySize', [
+      { value: 2, label: '2 a day' },
+      { value: 3, label: '3 a day' },
+      { value: 5, label: '5 a day' },
+    ], state.settings.dailySize)}
+
+    <p class="pcard__body" style="margin-top:16px">Letters already met come back as a question —
+      "which one says this?" — rather than just being shown again. Being asked to remember is
+      what makes it stick. A wrong tap only replays the sound; nothing is scored.</p>
+    ${seg('quiz', [
+      { value: true, label: 'ask me' },
+      { value: false, label: 'just show' },
+    ], state.settings.quiz)}
+    <p class="pcard__body" style="margin:12px 0 0">
+      Letters come back after 1 day, then 2, 4, 8 and 16 — sooner if they were tricky.
+    </p>`);
+}
+
 export function sessionCard(state) {
   const mins = activeMinutes();
   return card('Session length', `

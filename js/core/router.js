@@ -4,6 +4,9 @@ import { timers } from './timers.js';
 import { stop as stopSpeech } from '../audio/speech.js';
 import * as trace from '../trace/session.js';
 import { TRACKS, lettersOf } from '../data/tracks.js';
+import * as daily from '../features/daily.js';
+import { say } from '../audio/say.js';
+import { coach } from '../render/coach.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
 
@@ -38,24 +41,95 @@ export function goHome() {
   navigate({ screen: 'home' });
 }
 
+/**
+ * Tapping a track card starts today's set. Once today's set is finished the
+ * same card opens the full grid instead — so the bounded path is what a child
+ * meets first, and free exploration is what is left after the work is done,
+ * rather than the other way round.
+ */
 export function pickTrack(trackId) {
   const track = TRACKS[trackId];
   if (!track) {
     console.warn('router: unknown track', trackId);
     return;
   }
-  dispatch(A.FIRST_RUN_DONE);
-  // Sanskrit has no letter grid — the shloka screen is its whole content.
+  if (trackId === 'sa') {
+    navigate({ screen: 'shloka', trackId, letterIndex: 0 });
+    return;
+  }
+
+  const item = daily.start(trackId);
+  if (!item) {
+    openGrid(trackId);
+    return;
+  }
+  navigate({ screen: 'home', trackId });
+  presentDailyItem(item);
+}
+
+export function openGrid(trackId = getState().trackId) {
+  dispatch(A.DAILY_END);
   navigate({ screen: trackId === 'sa' ? 'shloka' : 'grid', trackId, letterIndex: 0 });
 }
 
+/** Route one item of today's set to the right activity. */
+export function presentDailyItem(item) {
+  const { trackId } = getState();
+  const letters = lettersOf(trackId);
+  const index = letters.findIndex((l) => l.glyph === item.glyph);
+  if (index === -1) {
+    console.warn('router: daily item not in track', item);
+    return openGrid(trackId);
+  }
+
+  // A letter met before gets asked rather than shown. Retrieval is the whole
+  // point — being shown a letter again is the weakest thing the app can do.
+  const question = item.kind === 'review' && getState().settings.quiz
+    ? daily.askFor(trackId, item.glyph)
+    : null;
+
+  if (question) {
+    navigate({ screen: 'quiz', letterIndex: index });
+    dispatch(A.QUIZ_ASK, question);
+    return;
+  }
+  openListen(index);
+}
+
+/** Move to the next item, or to the closing screen when the set is finished. */
+export function advanceDaily() {
+  const item = daily.next();
+  if (!item) {
+    navigate({ screen: 'done' });
+    return;
+  }
+  presentDailyItem(item);
+}
+
+/**
+ * Every route into the listen card goes through here, so the audio-first
+ * behaviour and the first-run fingertip are guaranteed rather than being a
+ * property of whichever button happened to be tapped.
+ */
 export function openListen(index) {
-  const letters = lettersOf(getState().trackId);
+  const state = getState();
+  const letters = lettersOf(state.trackId);
   if (index < 0 || index >= letters.length) {
     console.warn('router: letter index out of range', index);
     return;
   }
   navigate({ screen: 'listen', letterIndex: index });
+  coach('hear');
+
+  const letter = letters[index];
+  const track = TRACKS[state.trackId];
+  // Sound on arrival: this screen is audio-first, not tap-then-audio. On a
+  // cold first run the browser refuses until a gesture, which is exactly why
+  // the fingertip points at the speaker.
+  timers.t(() => {
+    const text = state.settings.soundFirst && letter.keyword ? letter.keyword : letter.glyph;
+    say(text, track.lang, { key: `${track.id}/${letter.glyph}/name` });
+  }, 120);
 }
 
 export function openTrace() {
@@ -68,8 +142,13 @@ export function openTrace() {
   trace.open(trackId, letter, track).catch((err) => console.error('router: trace failed to open', err));
 }
 
-/** Wraps, so the child never reaches a dead end at the last letter. */
+/**
+ * Inside a daily session this walks today's set and then stops. Outside one
+ * it wraps, so the explore door never dead-ends at Z.
+ */
 export function nextLetter() {
+  if (getState().daily.active) return advanceDaily();
+
   const { trackId, letterIndex } = getState();
   const letters = lettersOf(trackId);
   if (!letters.length) return goHome();
