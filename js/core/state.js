@@ -51,11 +51,34 @@ export const INITIAL = Object.freeze({
   }),
 
   quiz: Object.freeze({
-    kind: null,           // sound2letter | letter2picture
+    kind: null,           // sound2letter | letter2picture | word2picture
     answer: null,
     cards: Object.freeze([]),
     wrong: Object.freeze([]),
     solved: false,
+    scope: null,          // null (letters) | 'words'
+    key: null,            // words scope: the wordKey being asked
+  }),
+
+  /* Today's word session, a sibling of `daily` and never merged with it.
+     `items` is [{t:'w'|'q', key, kind:'new'|'review'|'requeue'|'think'}];
+     requeued misses exist only here, never in storage — closing the app
+     mid-session lets the Leitner row carry them into tomorrow instead. */
+  words: Object.freeze({
+    items: Object.freeze([]),
+    done: Object.freeze([]),
+    index: 0,
+    active: false,
+  }),
+
+  /* One word turn: the child taps the big picture (invite), hears the word
+     (prompt), says it back into the mic (record), hears her own voice
+     (playback), and the card settles while a grown-up may quietly mark it. */
+  turn: Object.freeze({
+    step: 'invite',       // invite | prompt | record | playback | settle
+    key: null,
+    canRecord: false,
+    mark: null,           // null | 'got' | 'notyet' — parent-only, child-invisible
   }),
 
   gate: Object.freeze({ a: 0, b: 0, answer: 0, choices: Object.freeze([]), wrong: false, misses: 0 }),

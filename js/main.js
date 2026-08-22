@@ -9,7 +9,9 @@ import { load, onStorageMode, flush, update, snapshot } from './storage/store.js
 import { whenVoicesReady, unlock } from './audio/voices.js';
 import { unlockContext, loadManifest } from './audio/resolver.js';
 import { say, refreshTiers } from './audio/say.js';
+import { invalidateAudibility } from './audio/wordAudio.js';
 import * as trace from './trace/session.js';
+import * as turn from './features/turn.js';
 import * as session from './features/session.js';
 import { registerServiceWorker, detectStandalone } from './pwa.js';
 
@@ -35,6 +37,7 @@ async function boot() {
 
   lists.mountIcons();
   trace.configure({ speakFn: say });
+  turn.configure({ finish: router.finishWordTurn });
   startRender();
   bindEvents();
 
@@ -43,8 +46,11 @@ async function boot() {
   firstRunWalkthrough();
 
   // Voices resolve asynchronously; publish the honest tier list as soon as
-  // they land, so the parent-zone readout is never stale.
+  // they land, so the parent-zone readout is never stale. The words mode's
+  // audibility memo invalidates on the same beat — VOICE_READY repaints the
+  // home card, which then sees the fresh answer.
   await Promise.allSettled([whenVoicesReady(), loadManifest()]);
+  invalidateAudibility();
   refreshTiers();
 
   registerServiceWorker();
@@ -73,6 +79,7 @@ function bindLifecycle() {
   const onFirstTouch = () => {
     unlock();
     unlockContext();
+    invalidateAudibility();
     refreshTiers();
   };
   window.addEventListener('pointerdown', onFirstTouch, { once: true, capture: true });

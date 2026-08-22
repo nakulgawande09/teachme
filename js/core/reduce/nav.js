@@ -1,6 +1,6 @@
 import { A } from '../actions.js';
 
-const SCREENS = new Set(['home', 'grid', 'listen', 'trace', 'shloka', 'quiz', 'done']);
+const SCREENS = new Set(['home', 'grid', 'listen', 'trace', 'shloka', 'quiz', 'done', 'words']);
 const OVERLAYS = new Set(['celebrate', 'break', 'gate', 'parent']);
 
 /**

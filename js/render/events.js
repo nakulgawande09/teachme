@@ -7,10 +7,14 @@ import * as shloka from '../features/shloka.js';
 import * as session from '../features/session.js';
 import * as gate from '../parent/gate.js';
 import { say, refreshTiers } from '../audio/say.js';
+import { sayWord } from '../audio/wordAudio.js';
 import { TRACKS, lettersOf } from '../data/tracks.js';
+import { parseWordKey } from '../data/packs/index.js';
 import { resetProgress, resetEverything, exportJSON, snapshot } from '../storage/store.js';
 import { invalidate } from './lists.js';
 import * as daily from '../features/daily.js';
+import * as words from '../features/words.js';
+import * as turn from '../features/turn.js';
 import { coach } from './coach.js';
 
 /**
@@ -83,8 +87,20 @@ export const ACTIONS = {
   'quiz-replay': () => sayQuizPrompt(),
   'quiz-answer': (value) => answerQuiz(value),
 
+  /* words — the child-facing surface is two taps: the big picture, and the
+     replay speaker. The marks are the grown-up's, and invisible-in-practice. */
+  'pick-words': () => {
+    router.pickWords();
+    session.checkAtBoundary();
+  },
+  'word-tap': () => turn.tap(),
+  'word-replay': () => turn.replay(),
+  'mark-got': () => turn.mark('got'),
+  'mark-notyet': () => turn.mark('notyet'),
+
   'finish-day': () => {
     dispatch(A.DAILY_END);
+    dispatch(A.WORDS_END);
     router.goHome();
   },
 
@@ -135,6 +151,14 @@ export const ACTIONS = {
 function sayQuizPrompt() {
   const { quiz, trackId } = getState();
   if (!quiz.answer) return;
+
+  // A words question asks with the word, in the language being asked.
+  if (quiz.scope === 'words') {
+    const parsed = parseWordKey(quiz.key);
+    if (parsed) sayWord(parsed.packId, parsed.itemId, parsed.lang);
+    return;
+  }
+
   const track = TRACKS[trackId];
   const letter = lettersOf(trackId).find((l) => l.glyph === quiz.answer);
   if (!letter) return;
@@ -164,6 +188,13 @@ function answerQuiz(value) {
   dispatch(A.QUIZ_SOLVED);
   // Recalled unaided the first time counts as a promotion; needing a nudge
   // sends the letter back to tomorrow rather than forward.
+  if (quiz.scope === 'words') {
+    words.completeThinking(quiz.wrong.length === 0);
+    dispatch(A.PROGRESS_LOAD, { progress: snapshot().progress });
+    sayQuizPrompt();
+    setTimeout(() => router.advanceWords(), 1400);
+    return;
+  }
   daily.complete(quiz.wrong.length === 0);
   dispatch(A.PROGRESS_LOAD, { progress: snapshot().progress });
   sayQuizPrompt();

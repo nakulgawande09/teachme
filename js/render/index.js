@@ -24,9 +24,14 @@ export function startRender() {
       case 'grid':   lists.renderGrid(state); break;
       case 'listen': lists.renderListen(state); paintDailyDots(state, 'listenDots'); break;
       case 'trace':  lists.renderBeads(state); break;
-      case 'quiz':   lists.renderQuiz(state); paintDailyDots(state, 'quizDots'); break;
+      case 'quiz':
+        lists.renderQuiz(state);
+        if (state.quiz.scope === 'words') paintWordsDots(state, 'quizDots');
+        else paintDailyDots(state, 'quizDots');
+        break;
       case 'done':   lists.renderDone(state); break;
       case 'shloka': lists.renderShlokas(state); break;
+      case 'words':  lists.renderWordsTurn(state); paintWordsDots(state, 'wordsDots'); break;
       default: break;
     }
 
@@ -49,6 +54,24 @@ function paintDailyDots(state, hostId) {
     return;
   }
   lists.renderDots(hostId, daily.items.length, daily.done.length, daily.index);
+}
+
+/** The words finish line counts PLANNED turns only — a re-queued miss must
+ *  not visibly grow the day, or the end the dots promise stops being true. */
+function paintWordsDots(state, hostId) {
+  const { words } = state;
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  if (!words.active || !words.items.length) {
+    host.replaceChildren();
+    return;
+  }
+  const planned = words.items.filter((it) => it.kind !== 'requeue');
+  const current = words.items[words.index];
+  const currentIndex = current && current.kind !== 'requeue'
+    ? words.items.slice(0, words.index + 1).filter((it) => it.kind !== 'requeue').length - 1
+    : -1;
+  lists.renderDots(hostId, planned.length, words.done.length, currentIndex);
 }
 
 function paintCelebrate(state) {

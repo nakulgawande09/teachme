@@ -5,7 +5,11 @@ import { stop as stopSpeech } from '../audio/speech.js';
 import * as trace from '../trace/session.js';
 import { TRACKS, lettersOf } from '../data/tracks.js';
 import * as daily from '../features/daily.js';
+import * as words from '../features/words.js';
+import * as turn from '../features/turn.js';
 import { say } from '../audio/say.js';
+import { sayWord } from '../audio/wordAudio.js';
+import { parseWordKey } from '../data/packs/index.js';
 import { coach } from '../render/coach.js';
 
 const DEV = new URLSearchParams(location.search).has('dev');
@@ -22,6 +26,7 @@ function teardown() {
   timers.clearAll();
   stopSpeech();
   trace.destroy();
+  turn.destroy();
 }
 
 export function navigate(patch) {
@@ -160,6 +165,56 @@ export function nextLetter() {
 
 export function traceAgain() {
   openTrace();
+}
+
+/* ── words ─────────────────────────────────────────────────────────────── */
+
+/** Tapping the words card starts (or resumes) today's words; once they are
+ *  finished it re-opens the closing screen rather than doing nothing. */
+export function pickWords() {
+  const item = words.start();
+  if (!item) {
+    if (getState().words.active) navigate({ screen: 'done' });
+    return;
+  }
+  presentWordItem(item);
+}
+
+/** Route one item of today's words: a word turn, or a picture question. */
+export function presentWordItem(item) {
+  if (!item) return advanceWords();
+
+  if (item.t === 'q') {
+    const question = words.thinkQuestion(item.key);
+    if (question) {
+      navigate({ screen: 'quiz' });
+      dispatch(A.QUIZ_ASK, question);
+      // The question IS the sound; say it once on arrival, off the tap that
+      // brought the child here so iOS is already unlocked.
+      const parsed = parseWordKey(item.key);
+      if (parsed) timers.t(() => sayWord(parsed.packId, parsed.itemId, parsed.lang), 400);
+      return;
+    }
+    // A question that cannot be built degrades to a listen turn.
+  }
+
+  navigate({ screen: 'words' });
+  turn.begin(item.key);
+}
+
+export function advanceWords() {
+  const item = words.next();
+  if (!item) {
+    navigate({ screen: 'done' });
+    return;
+  }
+  presentWordItem(item);
+}
+
+/** The turn driver's terminal callback, wired up in main.js. */
+export function finishWordTurn(mark) {
+  words.complete(mark);
+  advanceWords();
 }
 
 export const currentLetter = () => lettersOf(getState().trackId)[getState().letterIndex] || null;

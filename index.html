@@ -185,6 +185,39 @@
     <div class="spacer"></div>
   </section>
 
+  <!-- ── 10 words ───────────────────────────────────────────────────── -->
+  <!-- Voice-only for the child: one big picture, no text, no score. The two
+       corner dots are a grown-up's quiet got-it / not-yet; if nobody taps
+       them the turn ends neutrally on its own. -->
+  <section data-motion class="screen screen--words" data-screen-label="10 words">
+    <header class="bar">
+      <button class="btn-round" type="button" data-action="go-home" aria-label="Home">
+        <span data-icon="home"></span>
+      </button>
+      <span class="dots" id="wordsDots" aria-hidden="true"></span>
+      <button class="btn-round btn-round--haldi" type="button" data-action="word-replay"
+              aria-label="Hear the word again">
+        <span class="audio-ring" aria-hidden="true"></span>
+        <span data-icon="speaker"></span>
+      </button>
+    </header>
+
+    <div class="spacer"></div>
+    <button class="wturn" type="button" id="wordArt" data-action="word-tap"
+            aria-label="Tap to hear the word">
+      <span class="wturn__halo" data-motion aria-hidden="true"></span>
+      <span class="wturn__art" id="wordEmoji" data-motion aria-hidden="true"></span>
+    </button>
+    <div class="spacer"></div>
+
+    <div class="wturn__foot">
+      <button class="wmark" type="button" data-action="mark-got"
+              aria-label="Grown-up: they said it"></button>
+      <button class="wmark wmark--notyet" type="button" data-action="mark-notyet"
+              aria-label="Grown-up: not yet"></button>
+    </div>
+  </section>
+
   <!-- ── 09 today is done ───────────────────────────────────────────── -->
   <section data-motion class="screen screen--done" data-screen-label="09 today is done">
     <div class="spacer"></div>

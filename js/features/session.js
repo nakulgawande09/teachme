@@ -75,9 +75,12 @@ export function tick() {
 
   dispatch(A.SESSION_TICK, { activeMs, breakDue });
 
-  // Never interrupt the celebration or a screen the child is mid-way through
-  // a stroke on — the break lands at the next natural boundary instead.
-  if (breakDue && !state.overlay && state.screen !== 'trace') {
+  // Never interrupt the celebration, a screen the child is mid-way through a
+  // stroke on, or a moment the mic is live — the break lands at the next
+  // natural boundary instead.
+  const recording = state.screen === 'words'
+    && (state.turn.step === 'record' || state.turn.step === 'playback');
+  if (breakDue && !state.overlay && state.screen !== 'trace' && !recording) {
     dispatch(A.OVERLAY, { overlay: 'break' });
   }
 }

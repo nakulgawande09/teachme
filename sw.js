@@ -1,7 +1,7 @@
 /* Akshar Khel service worker. Classic (not a module — Firefox still lacks
    module worker support). Bump VERSION on every deploy; it is the only knob. */
 
-const VERSION = '2026.08.17';
+const VERSION = '2026.08.22';
 const SHELL = `akshar-shell-${VERSION}`;
 const FONTS = 'akshar-fonts-v1';   // content-addressed URLs — survives deploys
 const NAV_TIMEOUT_MS = 2500;
@@ -18,14 +18,17 @@ const ASSETS = [
   '/js/core/router.js', '/js/core/state.js', '/js/core/store.js', '/js/core/timers.js',
   '/js/core/reduce/nav.js', '/js/core/reduce/trace.js', '/js/core/reduce/audio.js',
   '/js/core/reduce/parent.js', '/js/core/reduce/session.js', '/js/core/reduce/daily.js',
+  '/js/core/reduce/words.js',
   '/js/data/tracks.js', '/js/data/strokes.js', '/js/data/shlokas.js', '/js/data/icons.js',
-  '/js/data/sequence.js',
+  '/js/data/sequence.js', '/js/data/packs/index.js', '/js/data/packs/objects.js',
   '/js/audio/voices.js', '/js/audio/speech.js', '/js/audio/resolver.js', '/js/audio/say.js',
+  '/js/audio/wordAudio.js',
   '/js/trace/geometry.js', '/js/trace/crayon.js', '/js/trace/strokeEngine.js',
   '/js/trace/maskEngine.js', '/js/trace/session.js',
   '/js/storage/schema.js', '/js/storage/store.js', '/js/storage/progress.js',
   '/js/features/shloka.js', '/js/features/session.js', '/js/features/schedule.js',
-  '/js/features/daily.js',
+  '/js/features/daily.js', '/js/features/wordSchedule.js', '/js/features/words.js',
+  '/js/features/turn.js',
   '/js/render/index.js', '/js/render/attrs.js', '/js/render/lists.js', '/js/render/events.js',
   '/js/parent/index.js', '/js/parent/gate.js', '/js/parent/dashboard.js',
   '/js/parent/settings.js', '/js/parent/feedback.js',

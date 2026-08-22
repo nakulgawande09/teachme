@@ -68,8 +68,11 @@ function everyGlyphResolves() {
  *  enforced here rather than by memory. */
 function noEmojiInChrome() {
   const rx = /\p{Extended_Pictographic}/u;
+  // The art frames: the listen card's, the words mode's big picture and its
+  // home-card preview, quiz picture cards, and the words closing screen.
+  const FRAMES = '.listen__art, .wturn__art, .wcard__art, .wcard__today, .qcard__art, .done__glyphs';
   const offenders = [...document.querySelectorAll('.measure *')].filter((el) => {
-    if (el.closest('.listen__art')) return false;
+    if (el.closest(FRAMES)) return false;
     if (el.children.length) return false;
     return rx.test(el.textContent || '');
   });

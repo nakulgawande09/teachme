@@ -23,7 +23,17 @@ export const A = Object.freeze({
   DAILY_DONE:     'daily/done',       // {glyph}
   DAILY_END:      'daily/end',
 
-  QUIZ_ASK:       'quiz/ask',         // {kind, answer, cards}
+  WORDS_START:    'words/start',      // {items, done, index}
+  WORDS_ADVANCE:  'words/advance',    // {index}
+  WORDS_DONE:     'words/done',       // {key}
+  WORDS_REQUEUE:  'words/requeue',    // {key, at}
+  WORDS_END:      'words/end',
+
+  TURN_BEGIN:     'turn/begin',       // {key, canRecord}
+  TURN_STEP:      'turn/step',        // {step}
+  TURN_MARK:      'turn/mark',        // {mark: 'got'|'notyet'|null}
+
+  QUIZ_ASK:       'quiz/ask',         // {kind, answer, cards, scope?, key?}
   QUIZ_WRONG:     'quiz/wrong',       // {value}
   QUIZ_SOLVED:    'quiz/solved',
 

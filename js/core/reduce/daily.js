@@ -2,6 +2,7 @@ import { A } from '../actions.js';
 
 const EMPTY_QUIZ = Object.freeze({
   kind: null, answer: null, cards: Object.freeze([]), wrong: Object.freeze([]), solved: false,
+  scope: null, key: null,
 });
 
 export function reduceDaily(slice, action) {
@@ -45,6 +46,10 @@ export function reduceQuiz(slice, action) {
         cards: Array.isArray(action.cards) ? action.cards : [],
         wrong: [],
         solved: false,
+        // words-scope questions replay and complete against the words
+        // session; letters leave both null and behave exactly as before.
+        scope: action.scope === 'words' ? 'words' : null,
+        key: typeof action.key === 'string' ? action.key : null,
       };
 
     /* A wrong tap is recorded so that card can settle back, and for nothing

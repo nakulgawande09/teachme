@@ -15,6 +15,8 @@ export function attrsFor(state) {
     'data-stuck': t.stuck ? '1' : '',
     'data-retry': t.retry ? '1' : '',
     'data-audio': state.audio.status,
+    'data-turn': state.screen === 'words' ? state.turn.step : '',
+    'data-mark': state.screen === 'words' ? (state.turn.mark || '') : '',
     'data-first-run': state.firstRun ? '1' : '',
     'data-gate-wrong': state.gate.wrong ? '1' : '',
     'data-standalone': state.layout.standalone ? '1' : '',

@@ -3,6 +3,9 @@ import { TRACKS, TRACK_IDS, lettersOf } from '../data/tracks.js';
 import { SHLOKAS } from '../data/shlokas.js';
 import { icon } from '../data/icons.js';
 import { setFor } from '../features/daily.js';
+import * as words from '../features/words.js';
+import { audibleFingerprint } from '../audio/wordAudio.js';
+import { itemById, parseWordKey } from '../data/packs/index.js';
 
 /**
  * List rendering. Rebuilds are signature-gated: between rebuilds only
@@ -31,14 +34,18 @@ export function renderTracks(state) {
   const sets = Object.fromEntries(
     enabled.filter((id) => TRACKS[id].traceable).map((id) => [id, setFor(id)])
   );
+  const wordsSet = state.settings.words ? words.setFor() : { items: [], done: [] };
+  const packsOn = words.enabledPacks(state.settings);
   const sig = enabled.map((id) => {
     const s = sets[id];
     return s ? `${id}:${s.items.map((i) => i.glyph).join('')}:${s.done.join('')}` : id;
-  }).join('|');
+  }).join('|')
+    + `|w:${wordsSet.items.map((i) => i.key).join(',')}:${wordsSet.done.length}`
+    + `:${audibleFingerprint(packsOn)}`;
   if (!changed('tracks', sig)) return;
 
   const host = need('trackList');
-  replaceChildren(host, enabled.map((id) => {
+  const cards = enabled.map((id) => {
     const track = TRACKS[id];
     const set = sets[id];
     const complete = set && set.items.length && set.done.length >= set.items.length;
@@ -59,7 +66,50 @@ export function renderTracks(state) {
                data-arg="${id}" aria-label="Hear ${track.name}">${icon('speaker')}</button>
        <span class="finger" data-motion aria-hidden="true"></span>`;
     return card;
-  }));
+  });
+
+  const wordsCard = renderWordsCard(wordsSet);
+  if (wordsCard) cards.push(wordsCard);
+  replaceChildren(host, cards);
+}
+
+/**
+ * The words card on the home screen. Absent entirely while nothing is
+ * audible (no matching voice, nothing recorded yet) — a card that leads to
+ * silence would teach the child that tapping does nothing; the grown-ups
+ * area explains why and what to do about it.
+ */
+function renderWordsCard(set) {
+  if (!set.items.length) return null;
+
+  const wordTurns = set.items.filter((it) => it.t === 'w');
+  const complete = set.done.length >= set.items.length;
+  const today = wordTurns
+    .map((it) => {
+      const parsed = parseWordKey(it.key);
+      const item = parsed && itemById(parsed.packId, parsed.itemId);
+      if (!item) return '';
+      return `<span data-done="${set.done.includes(it.key) ? 1 : 0}">${item.emoji}</span>`;
+    })
+    .join('');
+
+  const first = parseWordKey(wordTurns[0]?.key);
+  const firstItem = first && itemById(first.packId, first.itemId);
+
+  const card = el('button', {
+    class: 'track-card track-card--words',
+    type: 'button',
+    'data-action': 'pick-words',
+    'aria-label': 'Words — tap a picture, hear the word, say it back',
+  });
+  card.innerHTML =
+    `<span class="wcard__art" aria-hidden="true">${firstItem ? firstItem.emoji : ''}</span>
+     <span class="track-card__body">
+       <span class="track-card__label">${complete ? 'all done' : 'today'}</span>
+       <span class="wcard__today" aria-hidden="true">${today}</span>
+       <span class="track-card__rule"></span>
+     </span>`;
+  return card;
 }
 
 function bodyFor(track, set, complete) {
@@ -189,16 +239,23 @@ function hintFor(state) {
 /* ── 04b recall ────────────────────────────────────────────────────────── */
 
 export function renderQuiz(state) {
-  const { kind, cards, answer, wrong, solved } = state.quiz;
+  const { kind, cards, answer, wrong, solved, scope } = state.quiz;
   if (!kind || !cards.length) return;
 
-  const target = lettersOf(state.trackId).find((l) => l.glyph === answer);
+  const target = scope === 'words' ? null : lettersOf(state.trackId).find((l) => l.glyph === answer);
   const prompt = need('quizPrompt');
 
   // sound → letter leads with the speaker, because the question IS the sound.
   // letter → picture leads with the glyph, and the speaker is a hint, not the
   // question, so it sits smaller underneath.
-  setHTML(prompt, kind === 'sound2letter'
+  // A words question is voice-only by design: the speaker is all there is —
+  // no text on screen for a child who cannot read.
+  setHTML(prompt, scope === 'words'
+    ? `<button class="btn-big btn-big--haldi" type="button" data-action="quiz-replay"
+               aria-label="Hear the word again">
+         <span class="audio-ring" aria-hidden="true"></span>${icon('speaker', 42)}
+       </button>`
+    : kind === 'sound2letter'
     ? `<button class="btn-big btn-big--haldi" type="button" data-action="quiz-replay"
                aria-label="Play the sound again">
          <span class="audio-ring" aria-hidden="true"></span>${icon('speaker', 42)}
@@ -236,6 +293,18 @@ export function renderQuiz(state) {
   });
 }
 
+/* ── 10 words turn ─────────────────────────────────────────────────────── */
+
+export function renderWordsTurn(state) {
+  const item = state.words.items[state.words.index];
+  const parsed = item && parseWordKey(item.key);
+  const packItem = parsed && itemById(parsed.packId, parsed.itemId);
+  if (!packItem) return;
+  setText(need('wordEmoji'), packItem.emoji);
+  // The word itself reaches the screen only as sound and as this label.
+  setAttr(need('wordArt'), 'aria-label', `${packItem.words.en} — tap to hear it`);
+}
+
 /* ── 09 today is done ──────────────────────────────────────────────────── */
 
 /**
@@ -244,6 +313,10 @@ export function renderQuiz(state) {
  * honest answer to "how do I stop this being addictive".
  */
 export function renderDone(state) {
+  const wordsEnded = state.words.active && state.words.items.length > 0
+    && state.words.index >= state.words.items.length;
+  if (wordsEnded) return renderWordsDone(state);
+
   const { daily } = state;
   const glyphs = daily.items.map((i) => i.glyph);
   setHTML(need('doneGlyphs'), glyphs.map((g) => `<span>${g}</span>`).join(''));
@@ -251,6 +324,34 @@ export function renderDone(state) {
   const first = daily.items[0];
   const letter = first && lettersOf(daily.trackId || state.trackId).find((l) => l.glyph === first.glyph);
   setHTML(need('doneBody'), offDeviceTask(letter, glyphs));
+}
+
+function renderWordsDone(state) {
+  const items = state.words.items
+    .filter((it) => it.kind !== 'requeue')
+    .map((it) => {
+      const parsed = parseWordKey(it.key);
+      return parsed && itemById(parsed.packId, parsed.itemId);
+    })
+    .filter(Boolean);
+
+  setHTML(need('doneGlyphs'),
+    items.map((i) => `<span class="done__emoji">${i.emoji}</span>`).join(''));
+
+  const pick = items[Math.floor(Date.now() / 864e5) % Math.max(1, items.length)];
+  setHTML(need('doneBody'), pick ? wordTask(pick) : '');
+}
+
+/* The words-mode closing task: go and find the real thing. The whole method
+   is that these thirty objects live in the house. */
+const WORD_TASKS = [
+  (i) => `Now go and find a real <b>${i.words.en}</b> in the house and bring it to someone.`,
+  (i) => `Go and point at a <b>${i.words.en}</b> and say its name — in both languages.`,
+  (i) => `Ask someone at home what THEY call a <b>${i.words.en}</b>. Listen carefully.`,
+];
+
+function wordTask(item) {
+  return WORD_TASKS[Math.floor(Date.now() / 864e5) % WORD_TASKS.length](item);
 }
 
 /* One small, specific, physical thing. Specific matters: "go and play" gets

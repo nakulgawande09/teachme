@@ -10,6 +10,7 @@
 #app[data-screen="trace"]  .screen--trace,
 #app[data-screen="quiz"]   .screen--quiz,
 #app[data-screen="done"]   .screen--done,
+#app[data-screen="words"]  .screen--words,
 #app[data-screen="shloka"] .screen--shloka{ display:flex; animation:akFade 260ms ease both }
 
 /* Screens cross-fade and settle rather than snapping, so a child can follow
@@ -176,6 +177,51 @@
 .shloka-line[data-playing="1"] .shloka-line__text{ color:var(--ink) }
 .shloka-line__tr{ display:block; margin-top:4px; font:400 11px var(--face-mono); color:var(--ink-4) }
 .shloka-line__mean{ display:block; margin-top:2px; font:400 12px var(--face-ui); color:var(--ink-4) }
+
+/* ── 10 words ──────────────────────────────────────────────────────────── */
+/* One big pressable picture. The whole turn is CSS states off data-turn:
+   the art breathes while it waits (invite), the amber halo swells while it
+   is her moment to speak (record), the card glows while her own voice plays
+   back, and the corner marks surface only while it settles. */
+.wturn{
+  position:relative; margin:0 auto; flex:none;
+  width:min(340px,82vw); aspect-ratio:1/1;
+  border-radius:var(--r-slate); background:var(--card);
+  border:1px solid var(--line); box-shadow:var(--sh-2);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:transform var(--press) ease, box-shadow var(--press) ease;
+}
+.wturn:active{ transform:translateY(2px); box-shadow:var(--sh-press) }
+.wturn__art{ font-size:clamp(110px,44vw,190px); line-height:1 }
+#app[data-turn="invite"] .wturn__art{ animation:akBreathe 4s ease-in-out infinite }
+
+.wturn__halo{
+  position:absolute; inset:-10px; border-radius:36px;
+  border:6px solid var(--halo-2); opacity:0; pointer-events:none;
+  transition:opacity 300ms ease;
+}
+#app[data-turn="record"] .wturn__halo{ opacity:1; animation:akBreathe 3s ease-in-out infinite }
+#app[data-turn="playback"] .wturn{ box-shadow:0 0 0 6px var(--halo) }
+#app[data-mark="got"] .wturn__art{ animation:akNod 900ms var(--settle) both }
+
+/* The grown-up marks: two 44px corner targets whose visible part is a tiny
+   translucent dot. They exist only while the card settles; a child chasing
+   the big picture never meets them. */
+.wturn__foot{
+  display:flex; justify-content:space-between; align-items:center;
+  min-height:52px; padding:0 var(--s2); flex:none;
+}
+.wmark{
+  width:52px; height:52px; border-radius:50%; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity 400ms ease;
+}
+.wmark::after{
+  content:''; width:13px; height:13px; border-radius:50%;
+  background:var(--leaf); opacity:.4;
+}
+.wmark--notyet::after{ background:var(--kumkum); opacity:.35 }
+#app[data-turn="settle"] .wmark{ opacity:1; pointer-events:auto }
 
 /* ── overlays ──────────────────────────────────────────────────────────── */
 .overlay{
