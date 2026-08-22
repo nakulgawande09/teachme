@@ -93,6 +93,29 @@ test('the objects pack is the size the daily maths assumes', () => {
   assert.ok(n >= 25 && n <= 35, `objects pack has ${n} items`);
 });
 
+/* Prediction — "what will happen?" — is the point of the STEM pack; the
+   experiments are what the tonight card hands the parents. */
+test('the STEM pack carries real home experiments', () => {
+  const exps = itemsOf('stem').filter((i) => i.exp);
+  assert.ok(exps.length >= 3, `only ${exps.length} STEM items have an experiment`);
+  for (const item of exps) {
+    assert.ok(item.exp.title, `${item.id}: experiment has no title`);
+    assert.ok(Array.isArray(item.exp.steps) && item.exp.steps.length >= 2,
+      `${item.id}: an experiment needs at least two steps`);
+  }
+});
+
+/* Every STEM property pairs with its opposite — that pairing is the
+   goes-together question AND the dinner conversation. */
+test('STEM opposites point at each other', () => {
+  for (const item of itemsOf('stem')) {
+    const partner = (item.rel.goesWith || [])[0];
+    if (!partner) continue;
+    const other = itemsOf('stem').find((i) => i.id === partner);
+    assert.ok(other, `${item.id}: partner ${partner} missing`);
+  }
+});
+
 test('pack data is deeply frozen — the scheduler must not be able to bend it', () => {
   const item = itemById('objects', 'cup');
   assert.ok(Object.isFrozen(item));

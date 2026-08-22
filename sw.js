@@ -21,6 +21,8 @@ const ASSETS = [
   '/js/core/reduce/words.js',
   '/js/data/tracks.js', '/js/data/strokes.js', '/js/data/shlokas.js', '/js/data/icons.js',
   '/js/data/sequence.js', '/js/data/packs/index.js', '/js/data/packs/objects.js',
+  '/js/data/packs/animals.js', '/js/data/packs/body.js', '/js/data/packs/numbers.js',
+  '/js/data/packs/stem.js',
   '/js/audio/voices.js', '/js/audio/speech.js', '/js/audio/resolver.js', '/js/audio/say.js',
   '/js/audio/wordAudio.js', '/js/audio/recorder.js',
   '/js/trace/geometry.js', '/js/trace/crayon.js', '/js/trace/strokeEngine.js',

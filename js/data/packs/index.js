@@ -1,4 +1,8 @@
 import { OBJECTS } from './objects.js';
+import { ANIMALS } from './animals.js';
+import { BODY } from './body.js';
+import { NUMBERS } from './numbers.js';
+import { STEM } from './stem.js';
 
 /**
  * The pack registry — "learn almost anything" as data, not code.
@@ -26,6 +30,10 @@ export const LANG_IDS = Object.freeze(Object.keys(LANGS));
 
 export const PACKS = Object.freeze({
   objects: OBJECTS,
+  animals: ANIMALS,
+  body: BODY,
+  numbers: NUMBERS,
+  stem: STEM,
 });
 
 export const PACK_IDS = Object.freeze(Object.keys(PACKS));
