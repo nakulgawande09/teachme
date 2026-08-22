@@ -2,6 +2,8 @@ import { TRACKS, TRACK_IDS, lettersOf } from '../data/tracks.js';
 import {
   strugglingIn, struggleReason, msToday, msThisWeek, formatDuration,
 } from '../storage/progress.js';
+import { tonightsCard } from '../features/wordSchedule.js';
+import { snapshot } from '../storage/store.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -61,6 +63,48 @@ function trackBlock(state, trackId) {
     <p class="ptrack__head">${esc(track.name)} — ${count} of ${letters.length} brought to life</p>
     ${chips ? `<div class="pglyphs">${chips}</div>` : '<p class="pcard__body">Nothing yet — that is fine at the start.</p>'}
   </div>`;
+}
+
+/**
+ * Tonight card — the app handing the language back to the family.
+ *
+ * The eleven minutes on the device are the smaller half of the method; the
+ * words said out loud at dinner are the larger half. This card is the whole
+ * hand-off: four words (the ones that need saving first), a couple of
+ * authored questions that make a two-year-old compare and explain, and —
+ * when a STEM pack item came up today — one tiny experiment.
+ */
+export function tonightCard(state) {
+  if (!state.settings.words) return '';
+  const data = snapshot();
+  const tonight = tonightsCard(data.progress.words, data.wordsDaily.items);
+  if (!tonight.words.length && !tonight.prompts.length) return '';
+
+  const words = tonight.words.map((w) => `
+    <div class="vrow">
+      <span class="pglyph pglyph--emoji">${w.emoji}</span>
+      <span class="vrow__text"><b>${esc(w.text)}</b>
+        <span class="plang">${esc(w.langName)}</span>
+        ${w.missed ? '<br>needed another go today — this one first' : ''}</span>
+    </div>`).join('');
+
+  const prompts = tonight.prompts.length
+    ? `<p class="pcard__title" style="margin-top:16px">And ask, whenever it fits</p>
+       ${tonight.prompts.map((p) => `<p class="pcard__body">· ${esc(p)}</p>`).join('')}`
+    : '';
+
+  const experiment = tonight.experiment
+    ? `<p class="pcard__title" style="margin-top:16px">${esc(tonight.experiment.title)}</p>
+       ${tonight.experiment.steps.map((s) => `<p class="pcard__body">· ${esc(s)}</p>`).join('')}`
+    : '';
+
+  return card('Tonight, away from the phone', `
+    <p class="pcard__body">Say each of these out loud at dinner — point at the real thing,
+      then wait. The words your child gives back at the table are worth more than
+      anything the app heard today.</p>
+    ${words}
+    ${prompts}
+    ${experiment}`);
 }
 
 /**

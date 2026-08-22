@@ -124,6 +124,11 @@ export const ACTIONS = {
     dispatch(A.SETTINGS_SET, { key: 'tracks', value: { ...tracks, [id]: !tracks[id] } });
     invalidate();
   },
+  'toggle-pack': (id) => {
+    const packs = getState().settings.packs;
+    dispatch(A.SETTINGS_SET, { key: 'packs', value: { ...packs, [id]: !packs[id] } });
+    invalidate();
+  },
   'test-voice': (id) => {
     const track = TRACKS[id];
     if (!track) return;

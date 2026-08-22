@@ -1,4 +1,5 @@
 import { TRACKS, TRACK_IDS } from '../data/tracks.js';
+import { PACKS, PACK_IDS } from '../data/packs/index.js';
 import { card, esc } from './dashboard.js';
 import { activeMinutes } from '../features/session.js';
 
@@ -99,6 +100,50 @@ export function contentCard(state) {
       { value: true, label: 'show the sound' },
       { value: false, label: 'letter only' },
     ], state.settings.soundFirst)}`);
+}
+
+/* Pack names for toggles, including packs that ship in later releases —
+   an unknown id in settings is harmless (the schema validates), but only
+   packs that actually exist in PACKS get a button. */
+export function wordsSettingsCard(state) {
+  const on = PACK_IDS.filter((id) => state.settings.packs[id]);
+  const packToggles = PACK_IDS.map((id) => {
+    const enabled = !!state.settings.packs[id];
+    const last = enabled && on.length === 1;
+    return `<button class="seg__opt" type="button"
+              data-action="toggle-pack" data-arg="${id}"
+              aria-pressed="${enabled}" ${last ? 'disabled' : ''}
+              title="${last ? 'At least one topic has to stay on' : ''}">${esc(PACKS[id].name)}</button>`;
+  }).join('');
+
+  return card('Words', `
+    <p class="pcard__body">A daily set of everyday things: tap the picture, hear the word —
+      English and मराठी take turns on the same objects — then say it back. Words that were
+      tricky return sooner; this page's <b>Tonight</b> card tells you which ones to use at
+      dinner.</p>
+    ${seg('words', [
+      { value: true, label: 'on' },
+      { value: false, label: 'off' },
+    ], state.settings.words)}
+
+    <p class="pcard__body" style="margin-top:16px">How many words a day.</p>
+    ${seg('wordsPerDay', [
+      { value: 4, label: '4 a day' },
+      { value: 6, label: '6 a day' },
+      { value: 8, label: '8 a day' },
+    ], state.settings.wordsPerDay)}
+
+    <p class="pcard__body" style="margin-top:16px">Topics in the rotation.</p>
+    <div class="seg">${packToggles}</div>
+
+    <p class="pcard__body" style="margin-top:16px">After the word plays, record your child
+      saying it back and play their own voice to them. The recording lives for a few
+      seconds in memory and is thrown away — nothing is uploaded, nothing is kept,
+      nothing is scored.</p>
+    ${seg('recordBack', [
+      { value: true, label: 'record & replay' },
+      { value: false, label: 'just listen' },
+    ], state.settings.recordBack)}`);
 }
 
 export function voiceControlsCard(state) {

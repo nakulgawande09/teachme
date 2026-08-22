@@ -66,6 +66,13 @@
 }
 .pglyph[data-done="1"]{ border:2px solid var(--haldi); color:var(--ink) }
 .pglyph[data-latin="1"]{ font-family:var(--face-latin) }
+.pglyph--emoji{ font-size:22px; font-family:var(--face-ui) }
+
+/* tonight card: which language each dinner word belongs to */
+.plang{
+  display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px;
+  border:1px solid var(--line); font:500 11px var(--face-ui); color:var(--ink-4);
+}
 
 .ptrack{ margin-bottom:var(--s4) }
 .ptrack:last-child{ margin-bottom:0 }
