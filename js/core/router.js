@@ -44,6 +44,9 @@ export function closeOverlay() {
 
 export function goHome() {
   navigate({ screen: 'home' });
+  // The mic must never stay warm on the home screen — the browser's
+  // recording indicator has to mean "a word turn is happening".
+  turn.releaseMic();
 }
 
 /**
@@ -177,6 +180,7 @@ export function pickWords() {
     if (getState().words.active) navigate({ screen: 'done' });
     return;
   }
+  turn.prepareMic();
   presentWordItem(item);
 }
 
@@ -206,6 +210,7 @@ export function advanceWords() {
   const item = words.next();
   if (!item) {
     navigate({ screen: 'done' });
+    turn.releaseMic();
     return;
   }
   presentWordItem(item);

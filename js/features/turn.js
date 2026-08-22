@@ -37,10 +37,22 @@ export function configure({ rec, finish } = {}) {
   if (typeof finish === 'function') onFinish = finish;
 }
 
+/** A live answer, not a boot-time one: the mic can be granted between one
+ *  turn and the next, and revoked between sessions. */
+const canRecordNow = () =>
+  !!(recorder && recorder.ready() && getState().settings.recordBack);
+
+/** Ask for the mic at session start — the permission dialog lands over the
+ *  quiet invite screen, never mid-turn. */
+export function prepareMic() {
+  if (recorder && recorder.available() && getState().settings.recordBack && !recorder.ready()) {
+    recorder.requestMic().catch(() => {});
+  }
+}
+
 export function begin(key) {
   live++;
-  const canRecord = !!(recorder && recorder.available() && getState().settings.recordBack);
-  dispatch(A.TURN_BEGIN, { key, canRecord });
+  dispatch(A.TURN_BEGIN, { key, canRecord: canRecordNow() });
 }
 
 /** The child's tap on the big picture. */
@@ -71,7 +83,7 @@ async function run() {
 
   timers.t(() => {
     if (token !== live) return;
-    if (getState().turn.canRecord) {
+    if (canRecordNow()) {
       recordStep(token).catch((err) => {
         console.warn('turn: recording failed, settling without it', err);
         if (token === live) settleStep(token);
@@ -123,8 +135,14 @@ function finish(markValue) {
   onFinish(markValue || null);
 }
 
-/** Called by the router on every navigation. */
+/** Called by the router on every navigation. Aborts any live recording but
+ *  keeps the granted stream warm for the next turn. */
 export function destroy() {
   live++;
   if (recorder) recorder.stop();
+}
+
+/** Hand the mic back entirely — the session is over or the child left. */
+export function releaseMic() {
+  if (recorder) recorder.release();
 }

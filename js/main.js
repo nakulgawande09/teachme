@@ -10,6 +10,7 @@ import { whenVoicesReady, unlock } from './audio/voices.js';
 import { unlockContext, loadManifest } from './audio/resolver.js';
 import { say, refreshTiers } from './audio/say.js';
 import { invalidateAudibility } from './audio/wordAudio.js';
+import * as recorder from './audio/recorder.js';
 import * as trace from './trace/session.js';
 import * as turn from './features/turn.js';
 import * as session from './features/session.js';
@@ -37,7 +38,7 @@ async function boot() {
 
   lists.mountIcons();
   trace.configure({ speakFn: say });
-  turn.configure({ finish: router.finishWordTurn });
+  turn.configure({ rec: recorder, finish: router.finishWordTurn });
   startRender();
   bindEvents();
 
@@ -95,7 +96,10 @@ function bindLifecycle() {
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', onResize);
 
-  window.addEventListener('pagehide', () => flush());
+  window.addEventListener('pagehide', () => {
+    flush();
+    turn.releaseMic();
+  });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flush();
   });

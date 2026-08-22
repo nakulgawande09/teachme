@@ -22,7 +22,7 @@ const ASSETS = [
   '/js/data/tracks.js', '/js/data/strokes.js', '/js/data/shlokas.js', '/js/data/icons.js',
   '/js/data/sequence.js', '/js/data/packs/index.js', '/js/data/packs/objects.js',
   '/js/audio/voices.js', '/js/audio/speech.js', '/js/audio/resolver.js', '/js/audio/say.js',
-  '/js/audio/wordAudio.js',
+  '/js/audio/wordAudio.js', '/js/audio/recorder.js',
   '/js/trace/geometry.js', '/js/trace/crayon.js', '/js/trace/strokeEngine.js',
   '/js/trace/maskEngine.js', '/js/trace/session.js',
   '/js/storage/schema.js', '/js/storage/store.js', '/js/storage/progress.js',
