@@ -112,6 +112,25 @@ export const ACTIONS = {
   'close-parent': () => {
     dispatch(A.OVERLAY, { overlay: null });
     import('../parent/index.js').then((m) => m.unmount()).catch(() => {});
+    // The recorder card may have warmed the mic; the child gets it back cold.
+    turn.releaseMic();
+  },
+
+  /* the parent recorder — lazy like the rest of the grown-ups area */
+  'rec-lang': (id) => {
+    import('../parent/recorder.js').then((m) => {
+      m.setLang(id);
+      import('../parent/index.js').then((p) => p.mount());
+    }).catch(() => {});
+  },
+  'rec-start': (key) => {
+    import('../parent/recorder.js').then((m) => m.startRecording(key)).catch(() => {});
+  },
+  'rec-play': (key) => {
+    import('../parent/recorder.js').then((m) => m.playClip(key)).catch(() => {});
+  },
+  'rec-del': (key) => {
+    import('../parent/recorder.js').then((m) => m.removeClip(key)).catch(() => {});
   },
 
   'set-setting': (arg) => {

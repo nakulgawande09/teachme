@@ -9,8 +9,9 @@ import { load, onStorageMode, flush, update, snapshot } from './storage/store.js
 import { whenVoicesReady, unlock } from './audio/voices.js';
 import { unlockContext, loadManifest } from './audio/resolver.js';
 import { say, refreshTiers } from './audio/say.js';
-import { invalidateAudibility } from './audio/wordAudio.js';
+import { invalidateAudibility, configureLocalClips } from './audio/wordAudio.js';
 import * as recorder from './audio/recorder.js';
+import * as clips from './storage/clips.js';
 import * as trace from './trace/session.js';
 import * as turn from './features/turn.js';
 import * as session from './features/session.js';
@@ -46,11 +47,21 @@ async function boot() {
   session.start();
   firstRunWalkthrough();
 
+  // Parent-recorded clips are the words mode's first audio rung: hasClip is
+  // sync, play decodes through the shared context via the recorder.
+  configureLocalClips({
+    has: clips.hasClip,
+    play: async (key) => {
+      const rec = await clips.getClip(key);
+      return rec ? recorder.play(rec.blob, 8000) : false;
+    },
+  });
+
   // Voices resolve asynchronously; publish the honest tier list as soon as
   // they land, so the parent-zone readout is never stale. The words mode's
   // audibility memo invalidates on the same beat — VOICE_READY repaints the
   // home card, which then sees the fresh answer.
-  await Promise.allSettled([whenVoicesReady(), loadManifest()]);
+  await Promise.allSettled([whenVoicesReady(), loadManifest(), clips.loadIndex()]);
   invalidateAudibility();
   refreshTiers();
 

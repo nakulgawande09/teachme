@@ -26,12 +26,13 @@ const ASSETS = [
   '/js/trace/geometry.js', '/js/trace/crayon.js', '/js/trace/strokeEngine.js',
   '/js/trace/maskEngine.js', '/js/trace/session.js',
   '/js/storage/schema.js', '/js/storage/store.js', '/js/storage/progress.js',
+  '/js/storage/clips.js',
   '/js/features/shloka.js', '/js/features/session.js', '/js/features/schedule.js',
   '/js/features/daily.js', '/js/features/wordSchedule.js', '/js/features/words.js',
   '/js/features/turn.js',
   '/js/render/index.js', '/js/render/attrs.js', '/js/render/lists.js', '/js/render/events.js',
   '/js/parent/index.js', '/js/parent/gate.js', '/js/parent/dashboard.js',
-  '/js/parent/settings.js', '/js/parent/feedback.js',
+  '/js/parent/settings.js', '/js/parent/feedback.js', '/js/parent/recorder.js',
   '/icons/192.png', '/icons/512.png', '/icons/maskable-512.png', '/icons/apple-touch-180.png',
 ];
 

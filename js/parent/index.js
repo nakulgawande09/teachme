@@ -4,6 +4,7 @@ import { progressCard, voiceCard, tonightCard, card, esc } from './dashboard.js'
 import {
   dailyCard, sessionCard, contentCard, voiceControlsCard, motionCard, wordsSettingsCard,
 } from './settings.js';
+import { recorderCard } from './recorder.js';
 import { isConfigured, payloadText, feedbackUrl, APP_VERSION } from './feedback.js';
 
 /**
@@ -37,6 +38,7 @@ function paint(state) {
     sessionCard(state),
     contentCard(state),
     voiceCard(state),
+    recorderCard(state),
     voiceControlsCard(state),
     motionCard(state),
     dataCard(state),

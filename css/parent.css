@@ -74,6 +74,17 @@
   border:1px solid var(--line); font:500 11px var(--face-ui); color:var(--ink-4);
 }
 
+/* the recorder list */
+.rlist{ display:flex; flex-direction:column; gap:var(--s2); max-height:46vh; overflow-y:auto }
+.rrow{
+  display:flex; align-items:center; gap:10px; padding:6px 8px;
+  border-radius:12px; border:1px solid var(--line); background:var(--paper);
+}
+.rrow[data-rec="1"]{ border-color:var(--haldi) }
+.rrow__word{ font:400 17px/1.2 var(--face-deva); color:var(--ink-2); min-width:72px }
+.rrow__state{ flex:1; font:400 11px/1.3 var(--face-ui); color:var(--ink-4) }
+.rrow__btns{ display:flex; gap:6px; flex:none }
+
 .ptrack{ margin-bottom:var(--s4) }
 .ptrack:last-child{ margin-bottom:0 }
 .ptrack__head{ font:500 14px var(--face-ui); color:var(--ink-2) }
