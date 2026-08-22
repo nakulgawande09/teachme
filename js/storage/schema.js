@@ -8,7 +8,7 @@
  * localStorage blob from growing forever.
  */
 
-export const CURRENT_VERSION = 1;
+export const CURRENT_VERSION = 2;
 export const STORAGE_KEY = 'akshar.v1';
 export const CORRUPT_KEY = 'akshar.v1.corrupt';
 
@@ -24,6 +24,14 @@ export const SETTINGS_SCHEMA = Object.freeze({
   motion:       { kind: 'enum',  of: ['auto', 'reduced'],                   def: 'auto' },
   tracks:       { kind: 'flags', of: ['en', 'mr', 'sa'], atLeast: 1,
                   def: { en: true, mr: true, sa: true } },
+
+  /* words mode */
+  words:        { kind: 'bool',                                             def: true },
+  wordsPerDay:  { kind: 'enum',  of: [4, 6, 8],                             def: 6 },
+  recordBack:   { kind: 'bool',                                             def: true },
+  packs:        { kind: 'flags', of: ['objects', 'animals', 'body', 'numbers', 'stem'],
+                  atLeast: 1,
+                  def: { objects: true, animals: false, body: false, numbers: false, stem: false } },
 });
 
 const clone = (v) => (v && typeof v === 'object' ? { ...v } : v);
@@ -35,6 +43,7 @@ export const SETTINGS_DEFAULTS = Object.freeze(
 export const EMPTY_PROGRESS = Object.freeze({
   done: Object.freeze({}),
   letters: Object.freeze({}),
+  words: Object.freeze({}),
 });
 
 export const EMPTY_USAGE = Object.freeze({ days: {}, sessions: 0, lastSessionAt: 0 });
@@ -63,7 +72,12 @@ export function validateField(key, raw) {
     case 'flags': {
       if (!raw || typeof raw !== 'object') return fallback(key, raw, clone(rule.def));
       const out = {};
-      for (const id of rule.of) out[id] = raw[id] !== false;
+      // A missing or malformed flag falls back to ITS OWN default, not to
+      // "on": packs ship default-off, and a blob written before a pack
+      // existed must not silently enable it.
+      for (const id of rule.of) {
+        out[id] = typeof raw[id] === 'boolean' ? raw[id] : rule.def[id] !== false;
+      }
       const on = rule.of.filter((id) => out[id]).length;
       // Turning off the last track would leave a child with a blank home
       // screen and no way back, so the schema refuses it.
@@ -146,4 +160,49 @@ export function validateDaily(raw) {
     sets[trackId] = { glyphs, done, closed: set.closed === true };
   }
   return { day: raw.day, sets };
+}
+
+/* ── words mode ────────────────────────────────────────────────────────── */
+
+/**
+ * One (item × language) row for the words mode. Same Leitner box/dueAt pair
+ * the letters use, plus the miss bookkeeping the back-off rule reads:
+ * an item marked "not yet" three days running sits out for a couple of days
+ * rather than becoming a daily wall the child runs into.
+ */
+export function validateWordRow(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  return {
+    attempts:    clamp(raw.attempts, 0, 9999, 0),
+    gotIt:       clamp(raw.gotIt, 0, 9999, 0),
+    notYet:      clamp(raw.notYet, 0, 9999, 0),
+    lastAt:      clamp(raw.lastAt, 0, Date.now() + 864e5, 0),
+    box:         clamp(raw.box, 0, MAX_BOX, 0),
+    dueAt:       clamp(raw.dueAt, 0, Date.now() + 400 * 864e5, 0),
+    missStreak:  clamp(raw.missStreak, 0, 9, 0),
+    lastMissDay: /^\d{4}-\d{2}-\d{2}$/.test(raw.lastMissDay) ? raw.lastMissDay : '',
+  };
+}
+
+/** Today's word set, persisted so reopening the app cannot mint a new one.
+ *  `items` mixes word turns (t:'w') and thinking turns (t:'q'); `done` lists
+ *  the keys finished today. In-session re-queues are deliberately NOT here —
+ *  a miss re-appears later in the running session, and if the app closes
+ *  first, the Leitner row already carries it into tomorrow. */
+export const EMPTY_WORDS_DAILY = Object.freeze({
+  day: '', items: Object.freeze([]), done: Object.freeze([]),
+});
+
+export function validateWordsDaily(raw) {
+  if (!raw || typeof raw !== 'object' || typeof raw.day !== 'string') return { day: '', items: [], done: [] };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw.day)) return { day: '', items: [], done: [] };
+
+  const items = (Array.isArray(raw.items) ? raw.items : [])
+    .filter((it) => it && typeof it === 'object'
+      && (it.t === 'w' || it.t === 'q') && typeof it.key === 'string')
+    .map((it) => ({ t: it.t, key: it.key }))
+    .slice(0, 16);
+  const keys = new Set(items.map((it) => it.key));
+  const done = Array.isArray(raw.done) ? raw.done.filter((k) => keys.has(k)) : [];
+  return { day: raw.day, items, done };
 }

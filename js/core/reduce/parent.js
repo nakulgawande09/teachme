@@ -62,7 +62,7 @@ export function reduceProgress(slice, action) {
   if (action.type !== A.PROGRESS_LOAD) return slice;
   const p = action.progress;
   if (!p || typeof p !== 'object') return EMPTY_PROGRESS;
-  return { done: p.done || {}, letters: p.letters || {} };
+  return { done: p.done || {}, letters: p.letters || {}, words: p.words || {} };
 }
 
 function shallowSame(a, b) {
