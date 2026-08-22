@@ -33,6 +33,7 @@ const ASSETS = [
   '/js/features/daily.js', '/js/features/wordSchedule.js', '/js/features/words.js',
   '/js/features/turn.js',
   '/js/render/index.js', '/js/render/attrs.js', '/js/render/lists.js', '/js/render/events.js',
+  '/js/render/coach.js',
   '/js/parent/index.js', '/js/parent/gate.js', '/js/parent/dashboard.js',
   '/js/parent/settings.js', '/js/parent/feedback.js', '/js/parent/recorder.js',
   '/icons/192.png', '/icons/512.png', '/icons/maskable-512.png', '/icons/apple-touch-180.png',

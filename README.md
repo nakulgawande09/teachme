@@ -1,6 +1,8 @@
 # अक्षर खेळ · Akshar Khel
 
-A quiet alphabet toy for a pre-reader — English, मराठी and संस्कृत letters to hear and trace.
+A quiet alphabet toy for a pre-reader — English, मराठी and संस्कृत letters to hear and trace —
+and a voice-first **words mode**: the same thirty everyday things in two languages, one big
+picture at a time.
 
 No accounts, no adverts, no analytics, no scores or streaks. Everything stays on the device.
 
@@ -32,11 +34,17 @@ index.html          markup only — no inline JS, no inline style
 css/                tokens · base+keyframes · components · screens · parent
 js/core/            store, immutable reducer slices, router, tracked timers, DOM helpers
 js/data/            tracks (86 glyphs), stroke paths, shlokas, inline SVG icons
-js/audio/           voice inventory, speech queue, the clip-resolver ladder
+js/data/packs/      the words corpus — one topic per file, pure data (see below)
+js/audio/           voice inventory, speech queue, the clip-resolver ladder,
+                    words audio + the child-echo recorder
 js/trace/           geometry, crayon, the two engines, and the lifecycle above them
-js/storage/         schema + validation, localStorage, progress heuristics
-js/parent/          hold-to-reveal gate, dashboard, settings, feedback contract
+js/storage/         schema + validation, localStorage, IndexedDB clip store,
+                    progress heuristics
+js/parent/          hold-to-reveal gate, dashboard (incl. the tonight card),
+                    settings, the word recorder, feedback contract
 js/render/          state → attributes on #app; CSS does the rest
+js/features/        pure schedulers (letters + words), the daily orchestrators,
+                    the word-turn machine, session clock
 sw.js               offline shell (ASSETS is hand-maintained — ?selftest=1 checks it)
 ```
 
@@ -69,6 +77,40 @@ nap* — a real word in the first week instead of after twenty-six letters. Mara
 The grid still lists letters in the familiar order, because that is what a parent expects and
 what a wall chart at home will match; only the daily set follows the sequence. See
 `js/data/sequence.js`.
+
+## The words mode
+
+The last card on the home screen is **words**: tap one big picture, hear the word, say it
+back. Zero text on the child's screen, no score, no speech recognition — after the word
+plays, the mic records the child for a few seconds and plays *their own voice* back
+(on-device, in memory, discarded), and two nearly-invisible corner dots let a grown-up
+quietly mark got-it / not-yet while the card settles. An unmarked turn ends neutrally on
+its own.
+
+Everything a child can learn here is a **content pack** (`js/data/packs/`): a topic as pure
+data — items with a picture, a word per language, a category, goes-with relations, a
+difficulty tier, and parent prompts. Five ship (everyday things on by default; animals &
+nature, body & senses, numbers/shapes/colors, and a STEM intro of opposite pairs with
+two-minute home experiments behind toggles). A new topic is a new data file; the engine
+never changes.
+
+The unit of scheduling is **(item × language)** — knowing *cup* and knowing *कप* are two
+memories — but an item appears at most once per day, in whichever language is most due, and
+a second language unlocks only once the first reaches box 2. Misses re-enter quietly three
+turns later and again tomorrow; a word missed three days running sits out for two days
+behind something the child is already good at (`js/features/wordSchedule.js`, pure and
+unit-tested, same as the letters). Once a few words are truly known, error-free
+hear-the-word-find-the-picture questions weave in between turns, reusing the letter quiz
+wholesale.
+
+Two rules keep it honest. **A silent word is never scheduled**: an (item × language) enters
+the day only if it can actually make a correct sound — a parent-recorded clip, a shipped
+clip, or a genuinely matching device voice, in that order. On a phone with no Marathi voice
+that means Marathi words simply don't come up until the parents record them, word by word,
+in the grown-ups area — which is the intended path, not a fallback. And **the app is the
+smaller half of the method**: the dashboard's *Tonight* card hands the parents four words
+(today's misses first, languages alternating) and a couple of authored ask-your-child
+questions, because the words said back at the dinner table are the ones that stick.
 
 ## Three decisions worth knowing before you change anything
 
@@ -105,6 +147,11 @@ indefinitely, give it an end first.
 - [ ] **Devanagari stroke order** needs review before any `reviewed: true` flip.
 - [ ] **Ten new Marathi keywords** (ई ए ऐ अं अः ङ ञ ष क्ष ज्ञ) are marked `NEW` in
       `js/data/tracks.js` and need a native speaker's approval.
+- [ ] **Pack Marathi words** (`js/data/packs/*.js`) were authored with standard/Puneri
+      forms; a native speaker should read the five lists once before a child does.
+- [ ] **Goes-together questions** — the `goesWith` relations are in the data and feed the
+      tonight card; the in-app two-pictures-that-pair activity is the next thinking turn
+      to add after word→picture has been watched with a real child.
 - [ ] **Tally form** — create it, then paste the id into `TALLY_FORM_ID` in
       `js/parent/feedback.js`. The feedback card does not render until you do.
 - [ ] **Keyword illustration** — emoji fill the 8:5 art frame for now; that frame is the slot
