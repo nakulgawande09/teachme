@@ -83,6 +83,10 @@ function hasAnyClip(trackId) {
   return false;
 }
 
+/** Whether a shipped clip exists for one exact key. The words mode asks this
+ *  per (item × language) — its schedulability rule, not just its tier. */
+export const hasClip = (key) => !!(manifest && manifest.clips && manifest.clips[key]);
+
 /**
  * Say one thing. Returns the tier that actually produced sound, so callers
  * (and the parent-zone readout) always know the truth.
@@ -119,6 +123,11 @@ export function unlockContext() {
   const ctx = context();
   if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
 }
+
+/** The one shared, gesture-unlocked context. The recorder plays the child's
+ *  own voice back through it, because a fresh <audio> element would need a
+ *  fresh gesture on iOS and the gesture already happened a step ago. */
+export const audioContext = () => context();
 
 async function bufferFor(file) {
   if (buffers.has(file)) return buffers.get(file);
