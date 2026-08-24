@@ -35,8 +35,14 @@ export function registerServiceWorker() {
   const secure = location.protocol === 'https:' || location.hostname === 'localhost';
   if (!secure) return;
 
-  window.addEventListener('load', () => {
+  // Boot awaits the voice list before calling this, and on a fast page the
+  // `load` event can fire during that wait — a listener added after the
+  // event has passed never runs, and the app silently loses its offline
+  // shell for the session. Register now if load already happened.
+  const register = () => {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .catch((err) => console.warn('pwa: service worker registration failed', err));
-  });
+  };
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register);
 }

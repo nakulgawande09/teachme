@@ -13,7 +13,7 @@ import { msThisWeek } from '../storage/progress.js';
  */
 export const TALLY_FORM_ID = 'REPLACE_WITH_TALLY_FORM_ID';
 
-export const APP_VERSION = '2026.08.22';
+export const APP_VERSION = '2026.08.24';
 
 export const isConfigured = () => /^[A-Za-z0-9]{4,}$/.test(TALLY_FORM_ID);
 
