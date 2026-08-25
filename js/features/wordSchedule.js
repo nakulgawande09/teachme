@@ -234,11 +234,19 @@ export function pickThinkAnswers(rows, enabledPacks, audible, usedItemTags, coun
  *  the sound is still warm. */
 export const requeuePosition = (length, index) => Math.min(length, index + 3);
 
+/* Categories whose pictures are SYMBOLS rather than things: a colour disc, a
+   shape outline, a numeral. Their distractors must come from the same
+   category — asking "where is लाल?" against a circle outline and a numeral
+   is a shape question by accident, and worse, a circle answer against two
+   colour discs has no right card at all. */
+const SYMBOLIC_CATS = new Set(['color', 'shape', 'number', 'size']);
+
 /**
- * Distractor ITEMS for a picture question. Same pack, never the answer;
- * prefers items the child has met — confusing two known things is useful
- * practice, guessing between strangers is not (the letter quiz's rule).
- * Distractors are pictures, so they do not need to be audible.
+ * Distractor ITEMS for a picture question. Same pack, never the answer,
+ * never the answer's own picture (two identical cards make the right answer
+ * refusable); prefers items the child has met — confusing two known things
+ * is useful practice, guessing between strangers is not (the letter quiz's
+ * rule). Distractors are pictures, so they do not need to be audible.
  */
 export function wordDistractors(answerKey, rows, count = 2, now = Date.now()) {
   const parsed = parseWordKey(answerKey);
@@ -247,7 +255,13 @@ export function wordDistractors(answerKey, rows, count = 2, now = Date.now()) {
   const pack = PACKS[parsed.packId];
   if (!pack) return [];
 
-  const pool = pack.items.filter((i) => i.id !== parsed.itemId);
+  const target = itemById(parsed.packId, parsed.itemId);
+  let pool = pack.items.filter((i) =>
+    i.id !== parsed.itemId && (!target || i.emoji !== target.emoji));
+  if (target && SYMBOLIC_CATS.has(target.cat)) {
+    const sameCat = pool.filter((i) => i.cat === target.cat);
+    if (sameCat.length >= count) pool = sameCat;
+  }
   if (!pool.length) return [];
 
   const metIds = new Set();
@@ -257,8 +271,7 @@ export function wordDistractors(answerKey, rows, count = 2, now = Date.now()) {
   const met = pool.filter((i) => metIds.has(i.id));
   const source = met.length >= count ? met : pool;
 
-  const answer = itemById(parsed.packId, parsed.itemId);
-  const answerTier = answer ? answer.tier : 1;
+  const answerTier = target ? target.tier : 1;
   const seed = answerKey + dayKey(now);
   return source
     .slice()

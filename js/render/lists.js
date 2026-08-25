@@ -267,7 +267,9 @@ export function renderQuiz(state) {
          <span class="audio-ring" aria-hidden="true"></span>${icon('speaker')}
        </button>`);
 
-  const sig = `${kind}|${cards.map((c) => c.value).join('')}`;
+  // Delimited and answer-qualified: a delimiter-less join let two different
+  // questions collide into one signature and keep the old cards on screen.
+  const sig = `${kind}|${scope || ''}|${answer}|${cards.map((c) => c.value).join('\u0001')}`;
   const host = need('quizCards');
   if (changed('quiz', sig)) {
     replaceChildren(host, cards.map((card) => {

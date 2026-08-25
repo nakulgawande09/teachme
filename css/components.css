@@ -277,13 +277,23 @@
 .qcard:active{ transform:translateY(2px); box-shadow:var(--sh-press) }
 .qcard__glyph{ font:400 clamp(56px,17vw,88px)/1 var(--track-font); color:var(--track-color) }
 .qcard__art{ font-size:clamp(48px,15vw,76px); line-height:1 }
-/* A wrong tap shakes once and settles. No red, no cross, no removal — the
-   card stays tappable, because the answer to "not that one" is another go. */
-.qcard[data-wrong="1"]{ animation:akShake 400ms ease }
+/* A wrong tap shakes once and SETTLES VISIBLY: the card stays dimmed with a
+   muted edge so the outcome survives reduced-motion (where the shake never
+   plays) and a second tap on the same card still reads as answered. It stays
+   tappable — the answer to "not that one" is another listen. */
+.qcard[data-wrong="1"]{
+  opacity:.55; border:2px solid rgba(190,63,44,.35);
+  animation:akShake 400ms ease;
+}
 .qcard[data-right="1"]{
   border:2px solid var(--leaf); box-shadow:var(--sh-leaf);
   animation:akNod 900ms var(--settle) both;
 }
+/* Solved: the right card holds the stage, the others bow out, and nothing is
+   tappable during the beat before the next item — a live-looking but inert
+   card reads as "frozen". */
+#app[data-quiz="solved"] .qcard{ pointer-events:none }
+#app[data-quiz="solved"] .qcard:not([data-right="1"]){ opacity:.25 }
 
 /* ── today is done ─────────────────────────────────────────────────────── */
 .done{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--s3);

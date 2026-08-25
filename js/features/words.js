@@ -123,11 +123,16 @@ export function complete(mark = null) {
 }
 
 /** Finish a thinking turn — scored exactly like a letter recall question:
- *  unaided counts, a nudged answer sends the word back to tomorrow. */
-export function completeThinking(correct = true) {
+ *  unaided counts, a nudged answer sends the word back to tomorrow.
+ *  `key`, when given, must match the current item (stale-caller guard). */
+export function completeThinking(correct = true, key = null) {
   const { words } = getState();
   const item = words.items[words.index];
   if (!item || item.t !== 'q') return;
+  if (key !== null && key !== item.key) {
+    console.warn('words: stale thinking completion ignored', key, '!=', item.key);
+    return;
+  }
 
   const now = Date.now();
   update((data) => {

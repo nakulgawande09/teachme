@@ -94,11 +94,15 @@ export function distractors(trackId, answer, count = 1, letters = {}, now = Date
   const source = met.length >= count ? met : pool;
 
   const answerRank = rankOf(trackId, answer);
+  // Deterministic per (answer, day): stable across re-renders of the same
+  // question, different across days. The old comparator ignored its
+  // arguments entirely, which is not a shuffle at all.
+  const seed = answer + Math.floor(now / 864e5);
   return source
     .slice()
     .sort((a, b) => Math.abs(rankOf(trackId, a) - answerRank) - Math.abs(rankOf(trackId, b) - answerRank))
     .slice(0, Math.max(count, 4))
-    .sort(() => (hash(answer + now) % 2 ? 1 : -1))
+    .sort((a, b) => hash(a + seed) - hash(b + seed))
     .slice(0, count);
 }
 
@@ -111,10 +115,13 @@ function hash(str) {
   return Math.abs(h);
 }
 
-/** Place the answer among the distractors, deterministically per question. */
+/** Place the answer among the distractors, deterministically per question.
+ *  Cards are objects, so the hash keys on the answer's VALUE — hashing the
+ *  object itself stringified every answer to "[object Object]". */
 export function layout(answer, others, seed = '') {
   const cards = [answer, ...others];
-  const at = hash(answer + seed) % cards.length;
+  const id = answer && answer.value !== undefined ? String(answer.value) : String(answer);
+  const at = hash(id + seed) % cards.length;
   const out = others.slice();
   out.splice(at, 0, answer);
   return out;

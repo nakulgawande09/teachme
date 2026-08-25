@@ -1,5 +1,6 @@
 import { dispatch, getState } from '../core/app.js';
 import { A } from '../core/actions.js';
+import { timers } from '../core/timers.js';
 import { need } from '../core/dom.js';
 import * as router from '../core/router.js';
 import * as trace from '../trace/session.js';
@@ -212,17 +213,20 @@ function answerQuiz(value) {
   dispatch(A.QUIZ_SOLVED);
   // Recalled unaided the first time counts as a promotion; needing a nudge
   // sends the letter back to tomorrow rather than forward.
+  // The advance goes through the TRACKED timer pool: a raw setTimeout here
+  // outlived navigation and yanked the child to the next item from whatever
+  // screen they had moved to in the meantime.
   if (quiz.scope === 'words') {
-    words.completeThinking(quiz.wrong.length === 0);
+    words.completeThinking(quiz.wrong.length === 0, quiz.key);
     dispatch(A.PROGRESS_LOAD, { progress: snapshot().progress });
     sayQuizPrompt();
-    setTimeout(() => router.advanceWords(), 1400);
+    timers.t(() => router.advanceWords(), 1400);
     return;
   }
-  daily.complete(quiz.wrong.length === 0);
+  daily.complete(quiz.wrong.length === 0, quiz.answer);
   dispatch(A.PROGRESS_LOAD, { progress: snapshot().progress });
   sayQuizPrompt();
-  setTimeout(() => router.advanceDaily(), 1400);
+  timers.t(() => router.advanceDaily(), 1400);
 }
 
 const coerce = (raw) => {

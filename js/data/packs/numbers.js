@@ -5,6 +5,11 @@
  * three shapes, six colors and the big/small pair. Counting real things at
  * the table (the prompts) is where the numbers become quantities.
  *
+ * Colours are FILLED SQUARES on purpose: in a colour question every card
+ * is the same shape and only the colour differs — which is the question.
+ * Circles would collide with the circle shape card (three discs, no right
+ * answer), which is exactly the defect this replaced.
+ *
  * The numeral emoji are the one place a "glyph" appears in the words mode —
  * deliberate: recognising 3 is the point of the word तीन.
  */
@@ -53,31 +58,31 @@ export const NUMBERS = Object.freeze({
       cat: 'shape', tier: 3, rel: { goesWith: ['circle'] },
       prompts: ['Make a triangle with three fingers. Count its corners — one, two, three.'],
     }),
-    w('square', '🟦', 'square', 'चौकोन', {
+    w('square', '🔲', 'square', 'चौकोन', {
       cat: 'shape', tier: 3, rel: { goesWith: ['circle'] },
       prompts: ['Ask: is the window a circle or a square? Trace its corners with a finger.'],
     }),
-    w('red', '🔴', 'red', 'लाल', {
+    w('red', '🟥', 'red', 'लाल', {
       cat: 'color', rel: { goesWith: ['yellow'] },
       prompts: ['At dinner: find something red on the table. Then something red on you.'],
     }),
-    w('yellow', '🟡', 'yellow', 'पिवळा', {
+    w('yellow', '🟨', 'yellow', 'पिवळा', {
       cat: 'color', rel: { goesWith: ['red'] },
       prompts: ['Ask: what is yellow? Banana, the sun, haldi in the dal — find one.'],
     }),
-    w('green', '🟢', 'green', 'हिरवा', {
+    w('green', '🟩', 'green', 'हिरवा', {
       cat: 'color', rel: { goesWith: ['yellow'] },
       prompts: ['Look out of the window: what is green out there? Count the green things.'],
     }),
-    w('blue', '🔵', 'blue', 'निळा', {
+    w('blue', '🟦', 'blue', 'निळा', {
       cat: 'color', rel: { goesWith: ['green'] },
       prompts: ['Ask: what color is the sky right now? Is it always blue?'],
     }),
-    w('white', '⚪', 'white', 'पांढरा', {
+    w('white', '⬜', 'white', 'पांढरा', {
       cat: 'color', tier: 2, rel: { goesWith: ['black'] },
       prompts: ['Find white at dinner: milk, rice, salt. Which one can you drink?'],
     }),
-    w('black', '⚫', 'black', 'काळा', {
+    w('black', '⬛', 'black', 'काळा', {
       cat: 'color', tier: 2, rel: { goesWith: ['white'] },
       prompts: ['Ask: what is black at night? Look for black shoes, black hair, a crow.'],
     }),

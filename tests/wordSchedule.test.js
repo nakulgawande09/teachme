@@ -4,7 +4,7 @@ import {
   buildWordSet, requeuePosition, wordDistractors, makeThinking,
   tonightsCard, wordKindOf, isCooling,
 } from '../js/features/wordSchedule.js';
-import { itemsOf, wordKey, ALL_WORD_KEYS, parseWordKey } from '../js/data/packs/index.js';
+import { itemsOf, itemById, wordKey, ALL_WORD_KEYS, parseWordKey } from '../js/data/packs/index.js';
 import { dayKey } from '../js/features/schedule.js';
 
 const NOW = Date.parse('2026-08-22T10:00:00Z');
@@ -191,6 +191,23 @@ test('a distractor is never the answer and prefers met items', () => {
   assert.ok(!ids.includes('cup'));
   assert.deepEqual(new Set(ids), new Set(['dog', 'cat']),
     'two known items beat twenty-eight strangers');
+});
+
+/* A colour question must be a colour question: same shape on every card,
+   only the colour differing. And no distractor may wear the answer's own
+   picture. */
+test('symbolic categories draw distractors from their own category', () => {
+  const colorQ = wordDistractors(wordKey('numbers', 'red', 'en'), {}, 2, NOW)
+    .map((id) => itemById('numbers', id));
+  assert.equal(colorQ.length, 2);
+  assert.ok(colorQ.every((i) => i.cat === 'color'), 'colours compete with colours');
+
+  const shapeQ = wordDistractors(wordKey('numbers', 'circle', 'en'), {}, 2, NOW)
+    .map((id) => itemById('numbers', id));
+  assert.ok(shapeQ.every((i) => i.cat === 'shape'), 'shapes compete with shapes');
+
+  const answer = itemById('numbers', 'red');
+  assert.ok(colorQ.every((i) => i.emoji !== answer.emoji));
 });
 
 test('distractors are stable within a day', () => {

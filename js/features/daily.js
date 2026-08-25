@@ -2,7 +2,7 @@ import { dispatch, getState } from '../core/app.js';
 import { A } from '../core/actions.js';
 import { update, snapshot, flush } from '../storage/store.js';
 import { letterKey, lettersOf, TRACKS } from '../data/tracks.js';
-import { buildSet, dayKey, promote, distractors, layout } from './schedule.js';
+import { buildSet, dayKey, promote, distractors, layout, metCount } from './schedule.js';
 
 /**
  * Today's set — the bounded portion that replaces an endless grid.
@@ -66,11 +66,18 @@ export function start(trackId) {
   return index < items.length ? items[index] : null;
 }
 
-/** Mark the current item finished and move the Leitner box on. */
-export function complete(correct = true) {
+/** Mark the current item finished and move the Leitner box on.
+ *  `glyph`, when given, must match the current item — a stale caller (an
+ *  escaped timer, a screen the child already left) must never promote the
+ *  wrong letter's box. */
+export function complete(correct = true, glyph = null) {
   const { daily } = getState();
   const item = daily.items[daily.index];
   if (!item) return;
+  if (glyph !== null && glyph !== item.glyph) {
+    console.warn('daily: stale completion ignored', glyph, '!=', item.glyph);
+    return;
+  }
 
   const key = letterKey(daily.trackId, item.glyph);
   update((data) => {
@@ -129,14 +136,21 @@ export function askFor(trackId, glyph, now = Date.now()) {
   if (!target) return null;
 
   const data = snapshot();
-  const others = distractors(trackId, glyph, 1, data.progress.letters, now);
+  // Two distractors once the child has met enough letters for the choice to
+  // mean anything — a two-card question is a coin flip, not recall.
+  const count = metCount(data.progress.letters, trackId) >= 4 ? 2 : 1;
+  const others = distractors(trackId, glyph, count, data.progress.letters, now);
   if (!others.length) return null;
 
   // letter → picture only works when every card actually has artwork, and
-  // only for a letter whose keyword genuinely starts with it.
+  // only for a letter whose keyword genuinely starts with it. Distractor art
+  // must also DIFFER from the target's — two identical pictures make the
+  // right answer refusable (अः and ग both use 🙏).
   const pictureable = !target.medial && !target.conjunct && !!target.art;
   const otherLetters = others.map((g) => letters.find((l) => l.glyph === g)).filter(Boolean);
-  const canPicture = pictureable && otherLetters.every((l) => l.art && !l.medial);
+  if (!otherLetters.length) return null;
+  const canPicture = pictureable
+    && otherLetters.every((l) => l.art && !l.medial && l.art !== target.art);
 
   const useSound = !canPicture || (dayNumber(now) + glyph.length) % 2 === 0;
   const kind = useSound ? 'sound2letter' : 'letter2picture';

@@ -116,6 +116,15 @@ test('STEM opposites point at each other', () => {
   }
 });
 
+/* Two items with the same picture in one pack can end up side by side in a
+   picture question — and then the right answer is refusable. */
+test('no two items in a pack share a picture', () => {
+  for (const packId of PACK_IDS) {
+    const emoji = itemsOf(packId).map((i) => i.emoji);
+    assert.equal(new Set(emoji).size, emoji.length, `${packId}: duplicate emoji`);
+  }
+});
+
 test('pack data is deeply frozen — the scheduler must not be able to bend it', () => {
   const item = itemById('objects', 'cup');
   assert.ok(Object.isFrozen(item));
