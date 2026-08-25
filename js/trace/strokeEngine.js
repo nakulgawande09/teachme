@@ -1,4 +1,6 @@
-import { samplePath, markHits, pointerPos, tolerance, threshold, pathEnds } from './geometry.js';
+import {
+  samplePath, advanceProgress, eventPoints, tolerance, progressNeed, pathEnds, MAX_INK_RATIO,
+} from './geometry.js';
 import { createCrayon, CRAY } from './crayon.js';
 import { setVars, setAttr, replaceChildren } from '../core/dom.js';
 
@@ -7,6 +9,14 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 /**
  * Stroke-order engine: an animated demonstration, then the child follows the
  * dots, one stroke at a time, in writing order.
+ *
+ * Validation is ORDERED progress along the path (see advanceProgress in
+ * geometry.js): start at the dot, travel the stroke's way, wobble forgiven.
+ * Lifting the finger keeps whatever progress was made — toddlers draw in
+ * dabs — and only a gesture that drew plenty while following nothing gets
+ * wiped and nudged. A stroke whose total ink runs far past the path length
+ * is a scribble that happened to sweep the corridor; it is wiped whole
+ * rather than accepted.
  *
  * Only reached for glyphs whose paths a human has reviewed — see
  * js/data/strokes.js. Everything else uses the mask engine, which never
@@ -18,12 +28,17 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
 
   const crayon = createCrayon(canvas, slate);
   const tol = tolerance(slate, strictness);
-  const need = threshold(strictness);
+  const need = progressNeed(strictness);
   const f = slate / 100;
 
   let strokeIndex = 0;
   let samples = [];
-  let hits = new Set();
+  let lengthPx = 0;
+  let progress = 0;
+  let strokeInk = 0;       // ink spent on the current stroke, across gestures
+  let gestureInk = 0;
+  let gestureStart = 0;    // progress when the current gesture began
+  let fallbackInk = 0;     // ink spent while a stroke could not be sampled
   let drawing = false;
   let last = null;
   let finished = false;
@@ -86,7 +101,9 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
   function ensureSamples() {
     if (samples.length) return;
     const p = guides.querySelectorAll('path[data-stroke]')[strokeIndex];
-    samples = samplePath(p, slate);
+    const sampled = samplePath(p, slate, tol);
+    samples = sampled.points;
+    lengthPx = sampled.lengthPx;
     if (!samples.length) console.warn('strokeEngine: could not sample stroke', strokeIndex);
   }
 
@@ -94,7 +111,9 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     crayon?.snap();
     strokeIndex += 1;
     samples = [];
-    hits = new Set();
+    lengthPx = 0;
+    progress = 0;
+    strokeInk = 0;
 
     if (strokeIndex >= strokes.length) {
       finished = true;
@@ -106,6 +125,42 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     cb.onStrokeAdvance?.(strokeIndex);
   }
 
+  /** The scribble gate, checked only at the moment of completion: coverage
+   *  earned with several times more ink than the path is long was swept, not
+   *  traced. The whole stroke is wiped so the do-over starts clean. */
+  function rejectStroke() {
+    drawing = false;
+    crayon?.rollback();
+    progress = 0;
+    strokeInk = 0;
+    cb.onRetry?.();
+  }
+
+  function feed(points) {
+    if (!samples.length) return;
+    for (const p of points) progress = advanceProgress(samples, progress, p, tol);
+    if (progress / samples.length >= need) {
+      if (strokeInk > lengthPx * MAX_INK_RATIO) {
+        rejectStroke();
+        return;
+      }
+      // Completes mid-drag: the child does not have to lift a finger to
+      // succeed, and the letter finishes itself under their hand.
+      drawing = false;
+      nextStroke();
+    }
+  }
+
+  const inkOf = (from, points) => {
+    let d = 0;
+    let prev = from;
+    for (const p of points) {
+      d += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
+      prev = p;
+    }
+    return d;
+  };
+
   return {
     get beadCount() { return strokes.length; },
     get strokeIndex() { return strokeIndex; },
@@ -115,7 +170,10 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     begin() {
       strokeIndex = 0;
       samples = [];
-      hits = new Set();
+      lengthPx = 0;
+      progress = 0;
+      strokeInk = 0;
+      fallbackInk = 0;
       finished = false;
       crayon?.clear();
       markGuides();
@@ -126,40 +184,62 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
       if (finished) return;
       ensureSamples();
       drawing = true;
-      last = pointerPos(e, canvas, slate);
-      markHits(samples, hits, last, tol);
+      gestureStart = progress;
+      gestureInk = 0;
+      crayon?.snapGesture();
+      const pts = eventPoints(e, canvas, slate);
+      last = pts[pts.length - 1];
+      feed(pts);
     },
 
     pointerMove(e) {
       if (!drawing || finished) return;
-      const p = pointerPos(e, canvas, slate);
-      crayon?.draw(last, p);
-      last = p;
-      markHits(samples, hits, p, tol);
-
-      // Completes mid-drag: the child does not have to lift a finger to
-      // succeed, and the letter finishes itself under their hand.
-      if (samples.length && hits.size / samples.length >= need) {
-        drawing = false;
-        nextStroke();
-      }
+      const pts = eventPoints(e, canvas, slate);
+      crayon?.drawLine(last, pts);
+      const ink = inkOf(last, pts);
+      gestureInk += ink;
+      strokeInk += ink;
+      last = pts[pts.length - 1];
+      feed(pts);
     },
 
     pointerUp() {
       if (!drawing) return;
       drawing = false;
-      // Below threshold on lift: wipe only this stroke, keep the accepted ones.
-      if (samples.length && hits.size / samples.length < need) {
-        crayon?.rollback();
-        hits = new Set();
+
+      // Fail open when the path could not be sampled: enough ink advances the
+      // stroke rather than trapping the child on an unwinnable screen.
+      if (!samples.length) {
+        fallbackInk += gestureInk;
+        if (fallbackInk > slate) {
+          fallbackInk = 0;
+          nextStroke();
+        }
+        return;
+      }
+
+      // A deliberate lift keeps its progress — dabs accumulate. Only a
+      // gesture that drew a real amount while following nothing gets wiped
+      // (that ink alone; earlier productive dabs stay) and earns the nudge.
+      if (progress === gestureStart && gestureInk > tol * 3) {
+        crayon?.rollbackGesture();
+        strokeInk -= gestureInk;
         cb.onRetry?.();
       }
+    },
+
+    /** The pointer went away without a deliberate lift — a palm landed, the
+     *  edge gesture fired, the finger slid off the slate. No judgment: keep
+     *  the ink, keep the progress, just stop drawing. */
+    pointerCancel() {
+      drawing = false;
     },
 
     /** Only the current stroke is cleared, never the whole glyph. */
     retry() {
       crayon?.rollback();
-      hits = new Set();
+      progress = 0;
+      strokeInk = 0;
     },
 
     seedNodes() {
@@ -171,7 +251,7 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     destroy() {
       drawing = false;
       samples = [];
-      hits = new Set();
+      progress = 0;
     },
   };
 }

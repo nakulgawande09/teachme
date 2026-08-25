@@ -3,21 +3,37 @@
  * here is unit-testable in node.
  */
 
-/** How forgiving the hit test is, as a fraction of the slate's edge. */
-export const TOL_FACTOR = Object.freeze({ gentle: 0.070, normal: 0.055, strict: 0.045 });
+/** How forgiving the hit test is, as a fraction of the slate's edge.
+ *  The ghost letter the child is told to follow is ±6.5 viewBox units wide
+ *  (stroke-width 13, css/screens.css), so `normal` must be at least that —
+ *  a corridor narrower than the visible target rejects honest tracing. */
+export const TOL_FACTOR = Object.freeze({ gentle: 0.085, normal: 0.068, strict: 0.055 });
 
-/** Fraction of a stroke's sample points that must be covered to accept it. */
+/** Fraction of a MASK component's cells that must be coloured in. */
 export const THRESHOLD = Object.freeze({ gentle: 0.60, normal: 0.70, strict: 0.80 });
 
-/** Sample points taken along each stroke. 26 is dense enough at 460px. */
-export const SAMPLES = 26;
+/** Fraction of a stroke's ORDERED samples that must be passed to accept it.
+ *  Higher than the mask threshold because progress already forgives wobble
+ *  (the skip-ahead window) — this mostly excuses lifting off a bit early. */
+export const PROGRESS = Object.freeze({ gentle: 0.80, normal: 0.88, strict: 0.93 });
+
+/** How many samples a wobble may skip without losing progress. At the sample
+ *  density below this bridges an off-corridor arc of roughly 3 × tolerance. */
+export const SKIP_AHEAD = 3;
+
+/** A stroke may not use more than this much ink relative to the path length.
+ *  An honest wobbly trace lands well under 2×; a raster scribble that games
+ *  the ordered check needs 4-6×. Checked at the moment of completion. */
+export const MAX_INK_RATIO = 3;
 
 /**
- * Slate edge in CSS px: square, never wider than the viewport, never taller
- * than 44% of it, never below a usable 220 or above 460.
+ * Slate edge in CSS px: square, never wider than the viewport, preferring 44%
+ * of its height, and never taller than the height minus the trace screen's
+ * own chrome (~240px) — a slate larger than its space gets clipped, and a
+ * clipped baseline is a stroke that can never be finished.
  */
 export function slateSize(w = window.innerWidth, h = window.innerHeight) {
-  return Math.round(Math.max(220, Math.min(w - 40, h * 0.44, 460)));
+  return Math.round(Math.min(Math.max(160, Math.min(h - 240, h * 0.44)), w - 40, 460));
 }
 
 export const tolerance = (slate, strictness = 'normal') =>
@@ -25,6 +41,9 @@ export const tolerance = (slate, strictness = 'normal') =>
 
 export const threshold = (strictness = 'normal') =>
   THRESHOLD[strictness] ?? THRESHOLD.normal;
+
+export const progressNeed = (strictness = 'normal') =>
+  PROGRESS[strictness] ?? PROGRESS.normal;
 
 /** Every number in an SVG path `d`, in order. */
 export const pathNumbers = (d) => (String(d).match(/-?\d*\.?\d+/g) || []).map(Number);
@@ -52,7 +71,11 @@ export function pathEnds(d) {
 }
 
 /**
- * Sample a rendered SVG path into slate coordinates.
+ * Sample a rendered SVG path into slate coordinates, densely enough that
+ * consecutive samples sit within one tolerance radius of each other — a
+ * finger following the line can then never fall between two samples, and
+ * the same tolerance is equally demanding on an 84px crossbar and a 630px O
+ * (a fixed count made short strokes ~5× easier than long ones).
  *
  * The path MUST be rendered when this runs — `display:none` makes
  * getTotalLength() return 0 in some engines, which silently yields a stroke
@@ -60,25 +83,61 @@ export function pathEnds(d) {
  *
  * @param {SVGPathElement} path
  * @param {number} slate edge length in CSS px
- * @returns {Array<[number,number]>}
+ * @param {number} tol   the acceptance tolerance, in slate px
+ * @returns {{points: Array<[number,number]>, lengthPx: number}}
  */
-export function samplePath(path, slate) {
-  if (!path || typeof path.getPointAtLength !== 'function') return [];
+export function samplePath(path, slate, tol = 20) {
+  if (!path || typeof path.getPointAtLength !== 'function') return { points: [], lengthPx: 0 };
   let length = 0;
   try {
     length = path.getTotalLength();
   } catch {
-    return [];
+    return { points: [], lengthPx: 0 };
   }
-  if (!length) return [];
+  if (!length) return { points: [], lengthPx: 0 };
 
   const f = slate / 100; // paths are authored in a 0-100 viewBox
-  const out = [];
-  for (let k = 0; k < SAMPLES; k++) {
-    const pt = path.getPointAtLength((length * k) / (SAMPLES - 1));
-    out.push([pt.x * f, pt.y * f]);
+  const lengthPx = length * f;
+  const count = Math.max(8, Math.min(80, Math.ceil(lengthPx / (tol * 0.9)) + 1));
+  const points = [];
+  for (let k = 0; k < count; k++) {
+    const pt = path.getPointAtLength((length * k) / (count - 1));
+    points.push([pt.x * f, pt.y * f]);
   }
-  return out;
+  return { points, lengthPx };
+}
+
+/**
+ * Ordered progress along a stroke — the heart of the validation.
+ *
+ * `progress` is how many samples have been passed IN ORDER. A point advances
+ * it only when it lands within tolerance of one of the next SKIP_AHEAD+1
+ * samples: the child must start at the start (sample 0 gets a slightly
+ * generous radius, anchored to the pulsing dot), travel in the stroke's
+ * direction, and may wobble off the corridor for a few samples without
+ * losing what they had. Ink far from the line adds nothing; drawing the
+ * stroke backwards adds nothing. Pure, and monotonic per call.
+ *
+ * @returns {number} the new progress
+ */
+export function advanceProgress(samples, progress, point, tol, skip = SKIP_AHEAD) {
+  const tolSq = tol * tol;
+  const startTolSq = (tol * 1.5) ** 2;
+  let p = progress;
+  for (;;) {
+    const windowEnd = Math.min(samples.length, p + skip + 1);
+    let moved = false;
+    for (let i = p; i < windowEnd; i++) {
+      const dx = point[0] - samples[i][0];
+      const dy = point[1] - samples[i][1];
+      if (dx * dx + dy * dy < (i === 0 ? startTolSq : tolSq)) {
+        p = i + 1;
+        moved = true;
+        break;
+      }
+    }
+    if (!moved || p >= samples.length) return p;
+  }
 }
 
 /**
@@ -110,6 +169,22 @@ export function pointerPos(event, canvas, slate) {
     (event.clientX - r.left) * (slate / r.width),
     (event.clientY - r.top) * (slate / r.height),
   ];
+}
+
+/**
+ * Every position a pointer event carries, coalesced samples included, in
+ * slate coordinates. On 120Hz digitisers the browser folds several input
+ * samples into one pointermove; reading only the event's own position
+ * discards half the child's stroke — visibly chordal ink, and honest fast
+ * strokes falling "between" the samples of the hit test.
+ */
+export function eventPoints(event, canvas, slate) {
+  let list = null;
+  try {
+    if (typeof event.getCoalescedEvents === 'function') list = event.getCoalescedEvents();
+  } catch { /* some embedders throw — the event itself is always usable */ }
+  const events = list && list.length ? list : [event];
+  return events.map((e) => pointerPos(e, canvas, slate));
 }
 
 /** Fixed, hand-placed scatter vectors for the five celebration seeds. */

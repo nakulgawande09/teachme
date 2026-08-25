@@ -11,7 +11,10 @@ export function attrsFor(state) {
     'data-engine': t.engine,
     'data-stage': t.stage,
     'data-alive': String(t.aliveStep),
-    'data-demo': t.showDemo && t.stage === 'demo' ? '1' : '',
+    // Not gated on the stage: the "show me again" replay and the stuck-timer
+    // demo both fire mid-trace, and gating on stage==='demo' left every one
+    // of them invisible — a stuck child had no way out.
+    'data-demo': t.showDemo ? '1' : '',
     'data-stuck': t.stuck ? '1' : '',
     'data-retry': t.retry ? '1' : '',
     'data-audio': state.audio.status,

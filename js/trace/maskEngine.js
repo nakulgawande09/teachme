@@ -1,4 +1,4 @@
-import { pointerPos, tolerance, threshold } from './geometry.js';
+import { pointerPos, eventPoints, threshold } from './geometry.js';
 import { createCrayon } from './crayon.js';
 import { setVars } from '../core/dom.js';
 
@@ -23,10 +23,14 @@ export function createMaskEngine({ nodes, slate, glyph, fontFamily, strictness, 
   const cb = callbacks || {};
 
   const crayon = createCrayon(canvas, slate);
-  const tol = tolerance(slate, strictness);
   const need = threshold(strictness);
-  const cellRadius = Math.ceil(tol / CELL);
+  // Credit only what the crayon actually inks: the marking square is sized
+  // from the crayon's half-width, not the hit tolerance. (The old radius
+  // credited a 50px band for a 14px line — one swipe near the शिरोरेखा
+  // finished the whole bar without the child colouring anything.)
+  const cellRadius = Math.max(1, Math.round(Math.max(11, slate * 0.047) / 2 / CELL));
   const cols = Math.ceil(slate / CELL);
+  const rows = Math.ceil(slate / CELL);
 
   let components = [];   // Array<Set<cellIndex>>
   let covered = [];      // Array<Set<cellIndex>>
@@ -35,6 +39,9 @@ export function createMaskEngine({ nodes, slate, glyph, fontFamily, strictness, 
   let last = null;
   let finished = false;
   let fontPx = Math.round(slate * 0.72);
+  let building = false;
+  let buildTries = 0;
+  let inkPx = 0;         // total ink, for the fail-open when the mask is gone
 
   /** Every glyph render — mask, ghost, alive — goes through these params. */
   const applyFont = (ctx, px) => {
@@ -62,6 +69,16 @@ export function createMaskEngine({ nodes, slate, glyph, fontFamily, strictness, 
    * had exactly this bug.
    */
   async function build() {
+    building = true;
+    buildTries++;
+    try {
+      await buildInner();
+    } finally {
+      building = false;
+    }
+  }
+
+  async function buildInner() {
     try {
       await document.fonts.ready;
       await document.fonts.load(`400 ${fontPx}px ${fontFamily}`, glyph);
@@ -243,7 +260,13 @@ export function createMaskEngine({ nodes, slate, glyph, fontFamily, strictness, 
     const cy = (point[1] / CELL) | 0;
     for (let dy = -cellRadius; dy <= cellRadius; dy++) {
       for (let dx = -cellRadius; dx <= cellRadius; dx++) {
-        const i = cellIndex(cx + dx, cy + dy);
+        const x = cx + dx;
+        const y = cy + dy;
+        // Bounds first: without this, a pointer in the left gutter wraps to
+        // cells on the far side of the row above — margin scribbles were
+        // crediting the opposite edge of the glyph.
+        if (x < 0 || x >= cols || y < 0 || y >= rows) continue;
+        const i = cellIndex(x, y);
         for (let c = 0; c < components.length; c++) {
           if (components[c].has(i)) covered[c].add(i);
         }
@@ -292,6 +315,12 @@ export function createMaskEngine({ nodes, slate, glyph, fontFamily, strictness, 
 
     pointerDown(e) {
       if (finished) return;
+      // A silently failed mask build (canvas memory, getImageData refusal)
+      // used to leave a letter that could never complete. Try again on the
+      // child's next touch — the pressure that broke it has often passed.
+      if (!components.length && !building && buildTries < 3) {
+        build().catch(() => {});
+      }
       drawing = true;
       last = pointerPos(e, canvas, slate);
       cover(last);
@@ -299,16 +328,32 @@ export function createMaskEngine({ nodes, slate, glyph, fontFamily, strictness, 
 
     pointerMove(e) {
       if (!drawing || finished) return;
-      const p = pointerPos(e, canvas, slate);
-      crayon?.draw(last, p);
-      last = p;
-      cover(p);
+      const pts = eventPoints(e, canvas, slate);
+      crayon?.drawLine(last, pts);
+      let prev = last;
+      for (const p of pts) {
+        inkPx += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
+        prev = p;
+        cover(p);
+      }
+      last = prev;
     },
 
     /* No failure mode here: partial coverage is simply progress, and the only
        nudge is the stuck timer. Wiping a child's work because they lifted a
        finger would be a punishment for a shape we cannot even sequence. */
-    pointerUp() { drawing = false },
+    pointerUp() {
+      drawing = false;
+      // Fail open: if the mask never built, a child who has genuinely
+      // coloured a letter's worth of ink still gets the moment, instead of
+      // an unwinnable screen with no error anywhere.
+      if (!components.length && !building && inkPx > slate * 4 && !finished) {
+        finished = true;
+        crayon?.snap();
+        cb.onComplete?.();
+      }
+    },
+    pointerCancel() { drawing = false },
     retry() { crayon?.rollback() },
     seedNodes() { return seeds },
     destroy() { drawing = false; components = []; covered = [] },

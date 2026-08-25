@@ -64,12 +64,15 @@
   border-radius:var(--r-slate); background:var(--card);
   border:1px solid var(--line); box-shadow:var(--sh-slate);
   touch-action:none;
+  overflow:hidden; /* one rounded clip on the parent, not per canvas layer */
 }
 .slate__svg,.slate__canvas,.slate__alive,.slate__mask{
   position:absolute; inset:0; width:100%; height:100%;
 }
 .slate__svg,.slate__alive,.slate__mask{ pointer-events:none }
-.slate__canvas{ touch-action:none; cursor:crosshair; border-radius:var(--r-slate) }
+/* No border-radius here: rounding the drawing canvas itself forces a mask on
+   the busiest layer at every repaint — the parent's overflow clip is free. */
+.slate__canvas{ touch-action:none; cursor:crosshair }
 #app[data-stage="alive"] .slate__canvas{ cursor:default }
 
 .slate__ghosts path{ fill:none; stroke:var(--ghost); stroke-width:13; stroke-linecap:round; stroke-linejoin:round }
@@ -112,6 +115,10 @@
 }
 #app[data-stage="trace"] .slate__dot{ opacity:1; animation:akDot 1.4s ease-in-out infinite }
 #app[data-stage="trace"] .slate__arrow{ opacity:.85 }
+/* While the finger is down the affordances stand aside: the infinite pulse
+   was compositing over the ink on every frame of every stroke. */
+#app[data-inking="1"] .slate__dot{ opacity:0; animation:none }
+#app[data-inking="1"] .slate__arrow{ opacity:0 }
 
 /* the signature moment — identical for both engines */
 .slate__alive{

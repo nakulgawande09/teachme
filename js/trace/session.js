@@ -1,7 +1,7 @@
 import { dispatch, getState } from '../core/app.js';
 import { A } from '../core/actions.js';
 import { createTimers } from '../core/timers.js';
-import { need, setVars, replaceChildren, el } from '../core/dom.js';
+import { need, setAttr, setVars, replaceChildren, el } from '../core/dom.js';
 import { slateSize, SEED_VECTORS } from './geometry.js';
 import { createStrokeEngine } from './strokeEngine.js';
 import { createMaskEngine } from './maskEngine.js';
@@ -28,9 +28,10 @@ const timers = createTimers('trace');
 
 let engine = null;
 let nodes = null;
-let current = null;      // {trackId, letter, engineKind}
+let current = null;      // {trackId, letter, track, kind, slate}
 let attemptStart = 0;
 let abort = null;
+let activePointer = null;
 let say = async () => {};
 
 export function configure({ speakFn }) {
@@ -70,15 +71,17 @@ function mountSeeds(host) {
 }
 
 /** Enter the trace screen for one letter. */
-export async function open(trackId, letter, track) {
+export async function open(trackId, letter, track, { fresh = true } = {}) {
   destroy();
 
   const n = collectNodes();
-  const slate = slateSize();
+  // The rendered size comes from state (render/attrs.js writes --slate on
+  // #app every paint); the engine must use the SAME number or its tolerance
+  // silently rescales against what is actually on screen.
+  const slate = getState().layout.slate || slateSize();
   const strictness = getState().settings.strictness;
   const kind = track.traceable ? pickEngine(letter.glyph) : 'mask';
 
-  setVars(document.documentElement, { '--slate': `${slate}px` });
   mountSeeds(n.seeds);
 
   const callbacks = {
@@ -118,9 +121,11 @@ export async function open(trackId, letter, track) {
     await engine.mount();
   }
 
-  current = { trackId, letter, track, kind };
+  current = { trackId, letter, track, kind, slate };
   attemptStart = performance.now();
-  progress.recordAttempt(trackId, letter.glyph);
+  // A resize re-open is the same attempt continuing, not a new try — counting
+  // it again would flag every rotated phone as a struggling child.
+  if (fresh) progress.recordAttempt(trackId, letter.glyph);
 
   engine.begin();
   bindPointer(n.canvas);
@@ -130,6 +135,7 @@ export async function open(trackId, letter, track) {
 function bindPointer(canvas) {
   abort = new AbortController();
   const { signal } = abort;
+  activePointer = null;
   const guard = (fn) => (e) => {
     e.preventDefault();
     try {
@@ -139,7 +145,17 @@ function bindPointer(canvas) {
     }
   };
 
+  // Presentation-only, written directly like the hold-door's progress bar:
+  // hides the pulsing start dot while ink is flowing.
+  const inking = (on) => setAttr(document.getElementById('app'), 'data-inking', on ? '1' : '');
+
   canvas.addEventListener('pointerdown', guard((e) => {
+    // One finger drives the crayon. A palm or second finger landing must not
+    // scribble lines between the two contacts or steal the stroke.
+    if (activePointer !== null) return;
+    activePointer = e.pointerId;
+    inking(true);
+
     // An impatient toddler must never be made to sit through the animation.
     if (getState().trace.stage === 'demo') {
       timers.clearAll();
@@ -151,29 +167,52 @@ function bindPointer(canvas) {
     engine?.pointerDown(e);
   }), { signal });
 
-  canvas.addEventListener('pointermove', guard((e) => engine?.pointerMove(e)), { signal });
-  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) {
-    canvas.addEventListener(ev, guard((e) => engine?.pointerUp(e)), { signal });
+  canvas.addEventListener('pointermove', guard((e) => {
+    if (e.pointerId !== activePointer) return;
+    engine?.pointerMove(e);
+  }), { signal });
+
+  // A deliberate lift is judged; a cancel (palm, edge gesture, capture lost)
+  // is not the child's fault and must never read as a wrong answer.
+  canvas.addEventListener('pointerup', guard((e) => {
+    if (e.pointerId !== activePointer) return;
+    activePointer = null;
+    inking(false);
+    engine?.pointerUp(e);
+  }), { signal });
+  for (const ev of ['pointercancel', 'pointerleave']) {
+    canvas.addEventListener(ev, guard((e) => {
+      if (e.pointerId !== activePointer) return;
+      activePointer = null;
+      inking(false);
+      (engine?.pointerCancel || engine?.pointerUp)?.call(engine, e);
+    }), { signal });
   }
 }
 
+const demoDuration = () =>
+  Math.max(1, getState().trace.strokeCount) * (850 + DEMO_GAP_MS) + 250;
+
 function runDemo() {
-  const count = Math.max(1, getState().trace.strokeCount);
-  const demoMs = 850;
-  setVars(document.documentElement, { '--demo-ms': `${demoMs}ms` });
+  setVars(document.documentElement, { '--demo-ms': '850ms' });
   dispatch(A.TRACE_STAGE, { stage: 'demo' });
   dispatch(A.TRACE_DEMO, { on: true });
 
   timers.t(() => {
+    // The demo layer must actually leave when the run ends — data-demo is no
+    // longer gated on the stage, so a replay can work mid-trace too.
+    dispatch(A.TRACE_DEMO, { on: false });
     dispatch(A.TRACE_STAGE, { stage: 'trace' });
     startStuckTimer();
-  }, count * (demoMs + DEMO_GAP_MS) + 250);
+  }, demoDuration());
 }
 
-/** Hide, wait 40ms, show — the flicker is what restarts the CSS animation. */
+/** Hide, wait 40ms, show — the flicker is what restarts the CSS animation.
+ *  The overlay stands down again once the run has played out. */
 export function replayDemo() {
   dispatch(A.TRACE_DEMO, { on: false });
   timers.t(() => dispatch(A.TRACE_DEMO, { on: true }), RESTART_FLICKER_MS);
+  timers.t(() => dispatch(A.TRACE_DEMO, { on: false }), RESTART_FLICKER_MS + demoDuration());
 }
 
 function startStuckTimer() {
@@ -217,17 +256,24 @@ function comeAlive() {
 }
 
 /** Re-measure on rotate. The attempt restarts rather than rescaling pixels —
- *  scaling ImageData is lossy and the failure looks like a smear. */
+ *  scaling ImageData is lossy and the failure looks like a smear. Small
+ *  height twitches (a collapsing URL bar fires resize on every scroll frame
+ *  on Android) must NOT restart: they were silently deleting the child's
+ *  in-progress stroke several times a minute. */
 export function resize() {
   if (!current || getState().screen !== 'trace') return;
+  const next = getState().layout.slate || slateSize();
+  if (Math.abs(next - current.slate) < 12) return;
   const { trackId, letter, track } = current;
-  open(trackId, letter, track);
+  open(trackId, letter, track, { fresh: false });
 }
 
 export function destroy() {
   timers.clearAll();
   abort?.abort();
   abort = null;
+  activePointer = null;
+  setAttr(document.getElementById('app'), 'data-inking', '');
   engine?.destroy();
   engine = null;
   current = null;
