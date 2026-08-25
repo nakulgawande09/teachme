@@ -2,10 +2,11 @@
 
 /* The door. Low contrast on purpose: a child should not find it by looking,
    and a 1.4s hold is beyond an impatient three-year-old's patience. The hit
-   area is still a full 64px square — the negative margin only pulls its
-   visual centre into the corner. */
+   area is still a full 64px square. (No negative top margin: it used to put
+   this target at y=0 — under the status bar in standalone, and inside
+   Safari's edge-gesture strip.) */
 .hold-door{
-  width:var(--tap); height:var(--tap); margin:-14px -10px 0 0;
+  width:var(--tap); height:var(--tap); margin:0 -10px 0 0;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:5px; opacity:.5; cursor:pointer; touch-action:none; flex:none;
 }

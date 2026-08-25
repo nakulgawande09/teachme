@@ -192,14 +192,22 @@
    back, and the corner marks surface only while it settles. */
 .wturn{
   position:relative; margin:0 auto; flex:none;
-  width:min(340px,82vw); aspect-ratio:1/1;
+  /* height-capped too: a 340px square in a landscape phone's ~180px of free
+     height was clipped, marks and all, by #app's overflow:hidden */
+  width:min(340px,82vw,52vh);
+  width:min(340px,82vw,52dvh);
+  aspect-ratio:1/1;
   border-radius:var(--r-slate); background:var(--card);
   border:1px solid var(--line); box-shadow:var(--sh-2);
   display:flex; align-items:center; justify-content:center; cursor:pointer;
   transition:transform var(--press) ease, box-shadow var(--press) ease;
 }
 .wturn:active{ transform:translateY(2px); box-shadow:var(--sh-press) }
-.wturn__art{ font-size:clamp(110px,44vw,190px); line-height:1 }
+.wturn__art{
+  font-size:min(clamp(110px,44vw,190px),30vh);
+  font-size:min(clamp(110px,44vw,190px),30dvh);
+  line-height:1;
+}
 #app[data-turn="invite"] .wturn__art{ animation:akBreathe 4s ease-in-out infinite }
 
 .wturn__halo{
@@ -219,9 +227,10 @@
   min-height:52px; padding:0 var(--s2); flex:none;
 }
 .wmark{
-  width:52px; height:52px; border-radius:50%; cursor:pointer;
+  width:var(--tap); height:var(--tap); border-radius:50%; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
-  opacity:0; pointer-events:none; transition:opacity 400ms ease;
+  opacity:0; pointer-events:none;
+  transition:opacity 400ms ease, transform var(--press) ease, box-shadow var(--press) ease;
 }
 .wmark::after{
   content:''; width:13px; height:13px; border-radius:50%;

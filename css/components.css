@@ -10,7 +10,9 @@
 .card,
 .track-card,
 .chip-tap,
-.shloka-line{
+.shloka-line,
+.wmark,
+.gate__choice{
   cursor:pointer;
   transition:transform var(--press) ease, box-shadow var(--press) ease;
 }
@@ -20,11 +22,23 @@
 .card:active,
 .track-card:active,
 .chip-tap:active,
-.shloka-line:active{
+.shloka-line:active,
+.wmark:active,
+.gate__choice:active{
   transform:translateY(2px);
   box-shadow:var(--sh-press);
 }
 :focus-visible{ outline:3px solid var(--ink); outline-offset:3px }
+
+/* Double-tap-to-zoom is catastrophic in a full-bleed app a toddler hammers:
+   with #app overflow:hidden a zoomed page cannot be recovered by a child. */
+button,
+.pressable,
+.card,
+.track-card,
+.qcard,
+.wturn,
+.shloka-line{ touch-action:manipulation }
 
 .icon{ display:block; color:inherit }
 
@@ -103,16 +117,36 @@
 .chip--om{ background:var(--indigo); font-family:var(--face-deva) }
 
 /* ── track cards (home) ────────────────────────────────────────────────── */
-.tracks{ display:flex; flex-direction:column; gap:clamp(12px,2.4vh,18px) }
+/* The list scrolls. Four cards at their old fixed heights needed a taller
+   phone than exists, the deficit crushed every card below its own minimum,
+   and the fourth card clipped away unreachably — this is the scroll that
+   recovers it. */
+.tracks{
+  display:flex; flex-direction:column; gap:clamp(12px,2.4vh,18px);
+  /* content-sized, shrinkable: when the cards fit, the spacers centre the
+     list as before; when they don't, THIS box gives way and scrolls */
+  flex:0 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:4px 2px; /* room for the cards' press shadow inside the clip */
+}
+
+.track-card__wrap{ position:relative; flex:none }
 
 .track-card{
   position:relative; display:flex; align-items:center; gap:var(--s4);
-  height:clamp(132px,20vh,196px); padding:0 clamp(14px,4vw,22px);
+  height:clamp(108px,17vh,196px); padding:0 clamp(14px,4vw,22px);
   border-radius:var(--r-track); background:var(--card);
   border:1px solid var(--line); box-shadow:var(--sh-2);
   width:100%; text-align:left;
 }
 .track-card[hidden]{ display:none }
+
+/* The speaker sits OVER the card but is its sibling: a 48px preview control
+   at the card's right edge, leaving the card's own tap area to the card. */
+.track-card__speaker{
+  position:absolute; right:clamp(12px,3.5vw,20px); top:50%;
+  width:48px; height:48px; margin-top:-24px; z-index:1;
+}
+.track-card__speaker:active{ transform:translateY(2px); box-shadow:var(--sh-press) }
 .track-card__glyph{
   font:400 clamp(62px,17vw,104px)/1 var(--track-font);
   color:var(--track-color); width:clamp(78px,22vw,120px); text-align:center; flex:none;
@@ -129,8 +163,6 @@
 }
 .track-card__rule{ height:6px; width:64px; border-radius:3px; background:var(--track-color) }
 
-/* the speaker nested inside a track card; stopPropagation keeps it a preview */
-.track-card .btn-round{ z-index:1 }
 
 /* ── the only "mascot": a fingertip that bobs ──────────────────────────── */
 .finger{
@@ -139,9 +171,10 @@
   pointer-events:none; opacity:0;
 }
 /* offset from the speaker, so it points at the card rather than sitting on
-   top of the one control the child might already be reaching for */
-.track-card .finger{ left:clamp(56px,17vw,90px); bottom:-16px }
-#app[data-first-run="1"] .track-card:first-child .finger{
+   top of the one control the child might already be reaching for — and
+   INSIDE the card, not floating in the gap over the next one */
+.track-card .finger{ left:clamp(56px,17vw,90px); bottom:8px }
+#app[data-first-run="1"] .track-card__wrap:first-child .track-card .finger{
   opacity:1; animation:akFinger 1.6s ease-in-out infinite;
 }
 .slate .finger{ left:50%; bottom:18px; margin-left:-22px }
@@ -161,12 +194,14 @@
 }
 
 /* ── letter grid ───────────────────────────────────────────────────────── */
+/* 96px minimum = three columns on a phone. At 140px the Marathi track's 48
+   letters were 24 rows of two — four thousand pixels of scrolling. */
 .grid{
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-  gap:clamp(12px,3vw,18px);
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr));
+  gap:clamp(10px,2.6vw,18px);
 }
 .card{
-  position:relative; aspect-ratio:1/1; min-height:132px;
+  position:relative; aspect-ratio:1/1; min-height:96px;
   border-radius:var(--r-card); background:var(--card);
   border:1px solid var(--line); box-shadow:var(--sh-1);
   display:flex; align-items:center; justify-content:center; padding:6px;
@@ -174,7 +209,7 @@
 /* Colour comes from the TRACK, not the card index. The shipped app cycled
    five fills by position, which is what read as clip art: the colour carried
    no meaning. */
-.card__glyph{ font:400 clamp(52px,14vw,88px)/1 var(--track-font); color:var(--track-color) }
+.card__glyph{ font:400 clamp(40px,10vw,88px)/1 var(--track-font); color:var(--track-color) }
 .card__glyph--word{ font-size:clamp(20px,5.6vw,30px) }
 .card[data-done="1"]{ border:2px solid var(--haldi) }
 .card__done{
@@ -261,15 +296,22 @@
 }
 
 /* ── recall ────────────────────────────────────────────────────────────── */
-.quiz{ display:flex; flex-direction:column; align-items:center; gap:clamp(20px,5vh,40px) }
+.quiz{ display:flex; flex-direction:column; align-items:center; gap:clamp(20px,5vh,40px); width:100% }
 .quiz__prompt{
   display:flex; flex-direction:column; align-items:center; gap:var(--s3);
   font:400 clamp(80px,26vw,150px)/1 var(--track-font); color:var(--track-color);
 }
-.quiz__cards{ display:flex; gap:clamp(14px,5vw,26px); justify-content:center; flex-wrap:wrap }
+/* A grid, not a wrapping row: three fixed-width cards never fit a phone, so
+   every 3-card question rendered as two-on-top-one-below — and the lone card
+   underneath read as the special one, the exact wrong signal. */
+.quiz__cards{
+  display:grid; grid-template-columns:repeat(var(--qcards,2),1fr);
+  gap:clamp(10px,3vw,26px); width:100%; max-width:560px;
+  justify-items:center; margin:0 auto;
+}
 
 .qcard{
-  width:clamp(120px,38vw,168px); aspect-ratio:1/1; border-radius:var(--r-card);
+  width:100%; max-width:168px; aspect-ratio:1/1; border-radius:var(--r-card);
   background:var(--card); border:1px solid var(--line); box-shadow:var(--sh-2);
   display:flex; align-items:center; justify-content:center; cursor:pointer;
   transition:transform var(--press) ease, box-shadow var(--press) ease, opacity 300ms ease;

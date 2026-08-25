@@ -24,11 +24,13 @@ async function boot() {
   dispatch(A.PROGRESS_LOAD, { progress: data.progress });
   dispatch(A.STORAGE_MODE, { mode });
 
-  // Derived, not stored: a child who has never touched a letter is on their
+  // Derived, not stored: a child who has never touched ANYTHING is on their
   // first run. Keeping this in memory only would replay the walkthrough on
   // every single launch; giving it its own stored flag would then disagree
-  // with the progress a parent had just reset.
-  if (Object.keys(data.progress.letters).length > 0) dispatch(A.FIRST_RUN_DONE);
+  // with the progress a parent had just reset. Words progress counts too —
+  // a words-only child was being marched into a letter on every launch.
+  if (Object.keys(data.progress.letters).length > 0
+    || Object.keys(data.progress.words).length > 0) dispatch(A.FIRST_RUN_DONE);
   onStorageMode((next) => dispatch(A.STORAGE_MODE, { mode: next }));
 
   dispatch(A.LAYOUT, {

@@ -32,5 +32,6 @@ export function attrsFor(state) {
 export function varsFor(state) {
   return {
     '--slate': `${state.layout.slate}px`,
+    '--qcards': String(state.quiz.cards.length || 2),
   };
 }

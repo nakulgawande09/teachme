@@ -50,6 +50,10 @@ export function renderTracks(state) {
     const set = sets[id];
     const complete = set && set.items.length && set.done.length >= set.items.length;
 
+    // The card and its speaker are SIBLINGS in a positioned wrap. A button
+    // nested inside a button is invalid HTML, and the 64px speaker was
+    // swallowing the right third of the card's own tap area.
+    const wrap = el('div', { class: 'track-card__wrap' });
     const card = el('button', {
       class: 'track-card',
       type: 'button',
@@ -58,14 +62,23 @@ export function renderTracks(state) {
       'data-arg': id,
       'aria-label': track.name,
     });
-
     card.innerHTML =
       `<span class="track-card__glyph">${track.sample}</span>
        <span class="track-card__body">${bodyFor(track, set, complete)}<span class="track-card__rule"></span></span>
-       <button class="btn-round btn-round--haldi" type="button" data-action="say-track-name"
-               data-arg="${id}" aria-label="Hear ${track.name}">${icon('speaker')}</button>
        <span class="finger" data-motion aria-hidden="true"></span>`;
-    return card;
+
+    const speaker = el('button', {
+      class: 'btn-round btn-round--haldi track-card__speaker',
+      type: 'button',
+      'data-action': 'say-track-name',
+      'data-arg': id,
+      'data-track': id,
+      'aria-label': `Hear ${track.name}`,
+    });
+    speaker.innerHTML = icon('speaker');
+
+    wrap.append(card, speaker);
+    return wrap;
   });
 
   const wordsCard = renderWordsCard(wordsSet);
@@ -96,6 +109,7 @@ function renderWordsCard(set) {
   const first = parseWordKey(wordTurns[0]?.key);
   const firstItem = first && itemById(first.packId, first.itemId);
 
+  const wrap = el('div', { class: 'track-card__wrap' });
   const card = el('button', {
     class: 'track-card track-card--words',
     type: 'button',
@@ -109,7 +123,8 @@ function renderWordsCard(set) {
        <span class="wcard__today" aria-hidden="true">${today}</span>
        <span class="track-card__rule"></span>
      </span>`;
-  return card;
+  wrap.append(card);
+  return wrap;
 }
 
 function bodyFor(track, set, complete) {
