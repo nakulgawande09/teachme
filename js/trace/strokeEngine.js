@@ -1,5 +1,5 @@
 import {
-  samplePath, advanceProgress, eventPoints, tolerance, progressNeed, pathEnds, MAX_INK_RATIO,
+  samplePath, advanceProgress, eventPoints, tolerance, progressNeed, pathEnds, inkBudget,
 } from './geometry.js';
 import { createCrayon, CRAY } from './crayon.js';
 import { setVars, setAttr, replaceChildren } from '../core/dom.js';
@@ -140,7 +140,7 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     if (!samples.length) return;
     for (const p of points) progress = advanceProgress(samples, progress, p, tol);
     if (progress / samples.length >= need) {
-      if (strokeInk > lengthPx * MAX_INK_RATIO) {
+      if (strokeInk > inkBudget(lengthPx, slate)) {
         rejectStroke();
         return;
       }

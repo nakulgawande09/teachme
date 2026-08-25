@@ -27,6 +27,18 @@ export const SKIP_AHEAD = 3;
 export const MAX_INK_RATIO = 3;
 
 /**
+ * The ink a stroke may spend before it reads as a sweep rather than a trace.
+ *
+ * The ratio alone is far too tight on SHORT strokes: A's crossbar is under a
+ * third of the slate, and a child scrubbing back and forth over it a few
+ * times — exactly what a two-year-old does — blows a 3× budget while doing
+ * nothing wrong. The floor is what makes the check fire only on a real
+ * scribble, which has to cross the whole glyph box many times over.
+ */
+export const inkBudget = (lengthPx, slate) =>
+  Math.max(lengthPx * MAX_INK_RATIO, slate * 2);
+
+/**
  * Slate edge in CSS px: square, never wider than the viewport, preferring 44%
  * of its height, and never taller than the height minus the trace screen's
  * own chrome (~240px) — a slate larger than its space gets clipped, and a

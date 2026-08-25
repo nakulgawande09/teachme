@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   slateSize, tolerance, threshold, progressNeed, pathEnds, pathNumbers,
-  markHits, advanceProgress, SEED_VECTORS, MAX_INK_RATIO, SKIP_AHEAD,
+  markHits, advanceProgress, SEED_VECTORS, MAX_INK_RATIO, SKIP_AHEAD, inkBudget,
 } from '../js/trace/geometry.js';
 
 test('the slate is square and always fits the viewport', () => {
@@ -140,12 +140,30 @@ test('a raster scribble cannot pass as a stroke', () => {
   }
   const p = run(sweeps);
   const pathLen = 15 * (LINE.length - 1);
+  const budget = inkBudget(pathLen, 350);
   const completed = p / LINE.length >= 0.88;
-  const overInked = ink > pathLen * MAX_INK_RATIO;
-  assert.ok(!completed || overInked,
+  assert.ok(!completed || ink > budget,
     'a scribble must either fail the ordered check or blow the ink budget');
-  assert.ok(ink > pathLen * MAX_INK_RATIO,
-    'this scribble uses several times the path length in ink');
+  assert.ok(ink > budget, 'this scribble sweeps many times the budget in ink');
+});
+
+/* The budget must NOT fire on a short stroke a child scrubs over — A's
+   crossbar is under a third of the slate, and back-and-forth on it is
+   normal toddler drawing, not a scribble. */
+test('the ink budget has a floor that short strokes can live inside', () => {
+  const slate = 343;
+  const crossbar = 96;                    // A's crossbar at this slate
+  assert.equal(inkBudget(crossbar, slate), slate * 2, 'the floor governs short strokes');
+  assert.ok(inkBudget(crossbar, slate) > crossbar * 5,
+    'scrubbing a short stroke five times over is still honest work');
+
+  const longStroke = 600;                 // an O, most of the slate
+  assert.equal(inkBudget(longStroke, slate), longStroke * MAX_INK_RATIO,
+    'long strokes are governed by the ratio');
+
+  // A full-glyph raster scribble is far above either.
+  assert.ok(slate * 12 > inkBudget(longStroke, slate),
+    'a scribble crossing the box a dozen times is still caught');
 });
 
 test('markHits covers each sample once and reports new coverage only', () => {
