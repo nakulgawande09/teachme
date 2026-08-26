@@ -19,6 +19,9 @@ export function attrsFor(state) {
     'data-retry': t.retry ? '1' : '',
     'data-audio': state.audio.status,
     'data-quiz': state.quiz.solved ? 'solved' : '',
+    // A words question belongs to the words track, so the recall screen wears
+    // haldi rather than whichever letter track was open last.
+    'data-scope': state.quiz.scope || '',
     'data-turn': state.screen === 'words' ? state.turn.step : '',
     'data-mark': state.screen === 'words' ? (state.turn.mark || '') : '',
     'data-first-run': state.firstRun ? '1' : '',

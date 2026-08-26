@@ -123,57 +123,83 @@ button,
    recovers it. */
 .tracks{
   display:flex; flex-direction:column; gap:clamp(12px,2.4vh,18px);
-  /* content-sized, shrinkable: when the cards fit, the spacers centre the
-     list as before; when they don't, THIS box gives way and scrolls */
-  flex:0 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  /* takes the free height and hands it to the cards, so four colour fields
+     fill the screen instead of floating in it; still scrolls when they
+     genuinely don't fit (a short landscape phone) */
+  flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:4px 2px; /* room for the cards' press shadow inside the clip */
 }
 
-.track-card__wrap{ position:relative; flex:none }
+.track-card__wrap{ position:relative; flex:1 0 auto; display:flex }
 
+/* The colour blocks ARE the home screen, so the centring spacers give their
+   height back to the list instead of framing it. */
+.screen--home .spacer{ flex:0 0 var(--s3); min-height:var(--s3) }
+
+/* Each track owns a screen colour, so the card IS that colour rather than a
+   white card mentioning it. A child who cannot read a word learns in two days
+   that the red screen is the one with क on it. */
 .track-card{
-  position:relative; display:flex; align-items:center; gap:var(--s4);
+  position:relative; overflow:hidden; display:flex; align-items:center; gap:var(--s4);
   height:clamp(108px,17vh,196px); padding:0 clamp(14px,4vw,22px);
-  border-radius:var(--r-track); background:var(--card);
-  border:1px solid var(--line); box-shadow:var(--sh-2);
+  border-radius:var(--r-track); background:var(--track-color);
+  box-shadow:var(--sh-track); color:var(--card);
   width:100%; text-align:left;
+  /* grow into the free height so four cards fill the field, never shrink
+     below their own height so the list still scrolls when they don't fit */
+  flex:1 0 auto;
 }
 .track-card[hidden]{ display:none }
+/* the block-print stamp, blown up as a watermark */
+.track-card::before{
+  content:''; position:absolute; right:-8%; top:-34%; width:64%; aspect-ratio:1/1;
+  border-radius:50%; background:rgba(255,255,255,.11); pointer-events:none;
+}
 
 /* The speaker sits OVER the card but is its sibling: a 48px preview control
-   at the card's right edge, leaving the card's own tap area to the card. */
+   at the card's right edge, leaving the card's own tap area to the card.
+   On a colour field it is a translucent plate, not a haldi disc — a haldi
+   button on the haldi words card was invisible. */
 .track-card__speaker{
   position:absolute; right:clamp(12px,3.5vw,20px); top:50%;
   width:48px; height:48px; margin-top:-24px; z-index:1;
+  background:rgba(255,255,255,.22); color:var(--card); box-shadow:none;
 }
-.track-card__speaker:active{ transform:translateY(2px); box-shadow:var(--sh-press) }
+.track-card__speaker:active{ transform:translateY(2px); box-shadow:none }
 .track-card__glyph{
   font:400 clamp(62px,17vw,104px)/1 var(--track-font);
-  color:var(--track-color); width:clamp(78px,22vw,120px); text-align:center; flex:none;
+  color:var(--card); width:clamp(78px,22vw,120px); text-align:center; flex:none;
+  position:relative; z-index:1;
 }
-.track-card__body{ display:flex; flex-direction:column; gap:10px; flex:1; min-width:0 }
+.track-card__body{
+  display:flex; flex-direction:column; gap:10px; flex:1; min-width:0;
+  position:relative; z-index:1;
+}
 /* fade tail — "there is more inside", at a glance and without a word */
 .track-card__preview{ display:flex; gap:var(--s2) }
-.track-card__preview span{ font:400 clamp(24px,7vw,36px)/1 var(--track-font); color:var(--track-color) }
-.track-card__preview span:nth-child(1){ opacity:.55 }
-.track-card__preview span:nth-child(2){ opacity:.40 }
-.track-card__preview span:nth-child(3){ opacity:.28 }
+.track-card__preview span{ font:400 clamp(24px,7vw,36px)/1 var(--track-font); color:var(--card) }
+.track-card__preview span:nth-child(1){ opacity:.62 }
+.track-card__preview span:nth-child(2){ opacity:.46 }
+.track-card__preview span:nth-child(3){ opacity:.32 }
 .track-card__lines{
-  font:400 clamp(15px,4.2vw,21px)/1.35 var(--face-deva); color:var(--track-color); opacity:.62;
+  font:400 clamp(15px,4.2vw,21px)/1.35 var(--face-deva); color:var(--card); opacity:.72;
 }
-.track-card__rule{ height:6px; width:64px; border-radius:3px; background:var(--track-color) }
+/* The rule was the card's only colour; the field is now the colour itself. */
+.track-card__rule{ display:none }
 
 
 /* ── the only "mascot": a fingertip that bobs ──────────────────────────── */
 .finger{
   position:absolute; width:44px; height:44px; border-radius:50%;
   background:rgba(224,160,42,.35); border:3px solid var(--haldi);
-  pointer-events:none; opacity:0;
+  pointer-events:none; opacity:0; z-index:2;
 }
-/* offset from the speaker, so it points at the card rather than sitting on
-   top of the one control the child might already be reaching for — and
-   INSIDE the card, not floating in the gap over the next one */
-.track-card .finger{ left:clamp(56px,17vw,90px); bottom:8px }
+/* on a colour field a haldi ring disappears — most of all on the haldi card */
+.track-card .finger{ background:rgba(255,255,255,.34); border-color:var(--card) }
+/* Clear of BOTH the glyph and the speaker: it points at the open field in
+   between, so it never sits on top of the letter it is pointing at or on the
+   one control the child might already be reaching for. */
+.track-card .finger{ right:clamp(72px,20vw,96px); bottom:10px }
 #app[data-first-run="1"] .track-card__wrap:first-child .track-card .finger{
   opacity:1; animation:akFinger 1.6s ease-in-out infinite;
 }
@@ -278,28 +304,50 @@ button,
 
 .track-card__today{ display:flex; align-items:center; gap:10px }
 .track-card__today span{
-  font:400 clamp(24px,7vw,34px)/1 var(--track-font); color:var(--track-color); opacity:.85;
+  font:400 clamp(24px,7vw,34px)/1 var(--track-font); color:var(--card); opacity:.72;
 }
-.track-card__today span[data-done="1"]{ opacity:.28 }
+.track-card__today span[data-done="1"]{ opacity:.34 }
 
 /* the words card: pictures where the letters cards have glyphs */
 .track-card--words{ --track-color:var(--haldi) }
 .wcard__art{
   width:clamp(78px,22vw,120px); flex:none; text-align:center;
   font-size:clamp(48px,13vw,76px); line-height:1;
+  position:relative; z-index:1;
 }
-.wcard__today{ display:flex; align-items:center; gap:10px; font-size:clamp(22px,6vw,30px); line-height:1 }
-.wcard__today span[data-done="1"]{ opacity:.28 }
+.wcard__today{ display:flex; align-items:center; gap:8px; font-size:clamp(20px,5vw,26px); line-height:1 }
+/* Each picture sits on a light plate. Pale art — the moon, the egg — vanishes
+   into a saturated field otherwise, and the plate reads as a sticker. */
+.wcard__today span{
+  display:grid; place-items:center; width:1.62em; height:1.62em; border-radius:50%;
+  background:rgba(255,255,255,.72);
+}
+.wcard__today span[data-done="1"]{ opacity:.42 }
 .track-card__label{
   font:500 11px var(--face-ui); letter-spacing:.12em; text-transform:uppercase;
-  color:var(--ink-4);
+  color:var(--card); opacity:.76;
 }
 
 /* ── recall ────────────────────────────────────────────────────────────── */
 .quiz{ display:flex; flex-direction:column; align-items:center; gap:clamp(20px,5vh,40px); width:100% }
+/* The question and its answers sit below the middle, where a small hand
+   actually reaches; the field above them is the point of the colour. */
+.screen--quiz .spacer:first-of-type{ flex:1.5 }
+.screen--quiz .spacer:last-of-type{ flex:1 }
 .quiz__prompt{
   display:flex; flex-direction:column; align-items:center; gap:var(--s3);
-  font:400 clamp(80px,26vw,150px)/1 var(--track-font); color:var(--track-color);
+  font:400 clamp(80px,26vw,150px)/1 var(--track-font);
+  color:var(--screen-ink,var(--track-color));
+}
+/* On a field the haldi speaker would be a haldi disc on a haldi screen. It
+   becomes the white hero instead — the one thing on a recall screen a child
+   who cannot read is meant to press first. */
+.quiz__prompt .btn-big--haldi{
+  background:var(--card); color:var(--track-color); box-shadow:var(--sh-track);
+  width:118px; height:118px; border-radius:38px;
+}
+#app[data-screen="quiz"] .quiz__prompt .btn-round--haldi{
+  background:var(--card); color:var(--track-color); box-shadow:var(--sh-track);
 }
 /* A grid, not a wrapping row: three fixed-width cards never fit a phone, so
    every 3-card question rendered as two-on-top-one-below — and the lone card
@@ -312,7 +360,10 @@ button,
 
 .qcard{
   width:100%; max-width:168px; aspect-ratio:1/1; border-radius:var(--r-card);
-  background:var(--card); border:1px solid var(--line); box-shadow:var(--sh-2);
+  background:var(--card); box-shadow:var(--sh-track);
+  /* transparent, not absent: a right/wrong state adds a 2px edge, and going
+     1px -> 2px moved every other card by a pixel as the answer landed */
+  border:2px solid transparent;
   display:flex; align-items:center; justify-content:center; cursor:pointer;
   transition:transform var(--press) ease, box-shadow var(--press) ease, opacity 300ms ease;
 }
@@ -341,12 +392,24 @@ button,
 .done{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--s3);
        animation:akRise 420ms var(--settle) both }
 .done__glyphs{ display:flex; gap:clamp(10px,4vw,22px); align-items:baseline; flex-wrap:wrap; justify-content:center }
-.done__glyphs span{ font:400 clamp(48px,15vw,88px)/1 var(--track-font); color:var(--track-color) }
+.done__glyphs span{
+  font:400 clamp(48px,15vw,88px)/1 var(--track-font); color:var(--screen-ink,var(--track-color));
+}
+/* The sticker collage: each picture on its own plate, the one screen that
+   spends the celebration energy — and the only one that does. */
+.done__glyphs .done__emoji{
+  display:grid; place-items:center; width:1.55em; height:1.55em;
+  border-radius:26px; background:var(--card); box-shadow:var(--sh-track);
+}
 /* a words day closes on six-to-eight pictures, so they sit smaller */
 .done__glyphs .done__emoji{ font:400 clamp(30px,9vw,52px)/1 var(--face-ui) }
-.done__title{ margin:var(--s3) 0 0; font:400 clamp(24px,7vw,32px)/1.25 var(--face-deva) }
+.done__title{
+  margin:var(--s3) 0 0; font:400 clamp(24px,7vw,32px)/1.25 var(--face-deva);
+  color:var(--screen-ink,var(--ink));
+}
 .done__body{
-  margin:0; max-width:300px; font:400 16px/1.55 var(--face-ui); color:var(--ink-2);
+  margin:0; max-width:300px; font:400 16px/1.55 var(--face-ui);
+  color:var(--screen-ink,var(--ink-2));
 }
 .done__body b{ font:400 24px var(--track-font); font-weight:400 }
 .done__actions{
@@ -361,3 +424,5 @@ button,
 .ribbon i:nth-child(3){ background:var(--leaf) }
 .ribbon i:nth-child(4){ background:var(--peacock) }
 .ribbon i:nth-child(5){ background:var(--indigo) }
+/* the leaf bar on a leaf field is a gap in the ribbon */
+#app[data-screen="done"] .ribbon i:nth-child(3){ background:var(--card) }

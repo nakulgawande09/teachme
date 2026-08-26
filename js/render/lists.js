@@ -268,12 +268,12 @@ export function renderQuiz(state) {
   setHTML(prompt, scope === 'words'
     ? `<button class="btn-big btn-big--haldi" type="button" data-action="quiz-replay"
                aria-label="Hear the word again">
-         <span class="audio-ring" aria-hidden="true"></span>${icon('speaker', 42)}
+         <span class="audio-ring" aria-hidden="true"></span>${icon('speaker', 52)}
        </button>`
     : kind === 'sound2letter'
     ? `<button class="btn-big btn-big--haldi" type="button" data-action="quiz-replay"
                aria-label="Play the sound again">
-         <span class="audio-ring" aria-hidden="true"></span>${icon('speaker', 42)}
+         <span class="audio-ring" aria-hidden="true"></span>${icon('speaker', 52)}
        </button>
        <span class="listen__sound">${target ? target.sound : ''}</span>`
     : `<span>${answer}</span>

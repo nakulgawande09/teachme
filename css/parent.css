@@ -41,6 +41,72 @@
   border-radius:var(--r-card-sm); padding:18px;
 }
 .pcard__title{ margin:0 0 4px; font:500 15px var(--face-ui); color:var(--ink) }
+
+/* ── the bento ─────────────────────────────────────────────────────────
+   This is the screen a parent judges the app by, and it was a plain vertical
+   list of sentences. Mixed card sizes, one big numeral each, and a pastel
+   tint per tile so the three counts read at arm's length. The numbers are
+   here and NOWHERE else: nothing on the child's own screens counts. */
+.bento{ display:grid; grid-template-columns:1fr 1fr; gap:var(--s3) }
+@media (max-width:359px){ .bento{ grid-template-columns:1fr } }
+
+.pcard[data-tint="rose"]{ background:var(--t-rose); border-color:transparent }
+.pcard[data-tint="sky"] { background:var(--t-sky);  border-color:transparent }
+.pcard[data-tint="mint"]{ background:var(--t-mint); border-color:transparent }
+.pcard[data-tint="sand"]{ background:var(--t-sand); border-color:transparent }
+
+.pcard__eyebrow{
+  margin:0 0 6px; font:600 10px var(--face-ui); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3);
+}
+/* tabular-nums so a 9 and an 11 sit on the same left edge as they change */
+.pstat{
+  margin:0; display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;
+  font-variant-numeric:tabular-nums;
+}
+.pstat b{ font:600 clamp(34px,11vw,44px)/1 var(--face-ui); color:var(--ink); letter-spacing:-.02em }
+.pstat span{ font:400 15px var(--face-ui); color:var(--ink-3) }
+.ptile__foot{ margin:8px 0 0; font:400 12px/1.45 var(--face-ui); color:var(--ink-3) }
+.pcard--tile{ padding:16px }
+
+/* the language split — two segments, a surface gap between them, and both
+   named in the key underneath, so hue is never the only thing carrying it */
+.pbar{ display:flex; gap:2px; margin:12px 0 8px; height:12px; border-radius:6px; overflow:hidden }
+.pbar i{ display:block; border-radius:2px }
+[data-series="en"]{ background:var(--s-en) }
+[data-series="mr"]{ background:var(--s-mr) }
+.pbar [data-series="rest"]{ background:rgba(36,30,24,.11) }
+.pkey{ margin:0; display:flex; gap:16px; flex-wrap:wrap;
+       font:400 12.5px var(--face-ui); color:var(--ink-3) }
+.pkey span{ display:inline-flex; align-items:center; gap:6px }
+.pkey i{ width:9px; height:9px; border-radius:3px; display:block }
+
+/* ── minutes a day ─────────────────────────────────────────────────────
+   Bars, not a line: a line between two days draws minutes nobody played. */
+.pchart{
+  display:flex; align-items:flex-end; gap:2px; height:104px; margin:14px 0 6px;
+  border-bottom:1px solid var(--line);
+}
+.pchart .pbar-col{ flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end }
+.pchart i{
+  display:block; width:100%; background:var(--haldi);
+  border-radius:4px 4px 0 0;   /* the rounded end is the DATA end; the base sits on the axis */
+}
+.pchart i[data-today="1"]{ background:var(--ink) }
+/* A day with no play is still a day. Left at height 0 it vanishes, and a gap
+   in the row reads as missing data rather than as a day off. */
+.pchart i[data-zero="1"]{ height:3px !important; background:var(--line-2); border-radius:2px }
+/* The haldi bar is under 3:1 on cream, so the two numbers that matter are
+   printed rather than left to colour — today's, and the longest day's. */
+.pbar-num{
+  font:600 10px/1.4 var(--face-ui); color:var(--ink-3); text-align:center;
+  font-variant-numeric:tabular-nums; min-height:14px; opacity:0;
+}
+.pbar-num[data-on="1"]{ opacity:1 }
+.pchart__axis{
+  margin:0; display:flex; justify-content:space-between;
+  font:400 11px var(--face-ui); color:var(--ink-4);
+}
 /* --ink-3 clears 4.5:1 on --card; --ink-4 is for eyebrows and meta only */
 .pcard__body{ margin:0 0 12px; font:400 13px/1.55 var(--face-ui); color:var(--ink-3) }
 .pcard__body:last-child{ margin-bottom:0 }

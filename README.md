@@ -112,7 +112,7 @@ smaller half of the method**: the dashboard's *Tonight* card hands the parents f
 (today's misses first, languages alternating) and a couple of authored ask-your-child
 questions, because the words said back at the dinner table are the ones that stick.
 
-## Three decisions worth knowing before you change anything
+## Four decisions worth knowing before you change anything
 
 **Silence beats a wrong sound.** Almost no device ships a Marathi voice. The old build let the
 request fall through to a Hindi voice, which deletes the final schwa (कमळ → *kamal*) and has no
@@ -134,6 +134,18 @@ designer to sign off, then flip the boolean. A test guards this.
 last stroke lands, the child's crayon lifts and blurs away and the correct letterform fades up
 underneath it in the track colour, exactly where their hand just was. Progress is one amber dot
 on the grid card — no count, no score. Both engines converge on the same `comeAlive()`.
+
+**Colour is the navigation, and every number lives behind the door.** Each track already
+owned a colour; the child's screens now wear it edge to edge — peacock is English, kumkum is
+मराठी, indigo is संस्कृत, haldi is words — so a two-year-old who cannot read "मराठी" still
+learns in two days that the red screen is the one with क on it. Three screens are a full
+field (`words`, `quiz`, `done`); everything on them reads `--screen-ink`, which is the single
+hook that flips type and chrome to cream, so adding an element to a field screen costs one
+declaration rather than a parallel white-text rule. The counts, the tiles and the fourteen-day
+minutes chart live in the grown-ups area and *only* there. That area is a bento because it is
+the screen a parent judges the app by; the chart plots minutes a day because that is the one
+series actually stored, and drawing anything else would be inventing history. Nothing on a
+screen the child sees ever counts anything.
 
 **Everything that ends, ends on purpose.** The thing that makes an app hard to put down is a
 missing stopping cue, so this one has several: today's set is finite and its dots are visible

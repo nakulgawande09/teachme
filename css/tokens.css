@@ -23,6 +23,16 @@
   --leaf-ink:#41652A; /* leaf text on a leaf tint */
   --indigo:#313B77;   /* संस्कृत track */
 
+  /* Chart series. --peacock (#14706B) has chroma 0.08 and reads gray in a
+     thin mark, so the chart uses a brightened step; the pair clears the
+     chroma floor, CVD separation and 3:1 contrast on --card. Validated with
+     the dataviz palette checker, not by eye. */
+  --s-en:#0E8F86;
+  --s-mr:#BE3F2C;
+
+  /* pastel tints — the bento tiles in the grown-ups area */
+  --t-rose:#F6DFD9; --t-sky:#D8E7EA; --t-mint:#DDEBD4; --t-sand:#F5E6C8;
+
   /* derived alphas — used literally, everywhere */
   --line:rgba(36,30,24,.12);
   --line-2:rgba(36,30,24,.14);
@@ -50,6 +60,8 @@
   --sh-leaf:0 4px 0 rgba(60,92,34,.5);
   --sh-indigo:0 3px 0 rgba(24,30,66,.45);
   --sh-slate:inset 0 2px 0 rgba(255,255,255,.7), 0 3px 0 rgba(36,30,24,.12);
+  /* under a saturated card the ink shadow reads as depth, not as a smudge */
+  --sh-track:0 4px 0 rgba(36,30,24,.2);
 
   /* type — three roles, never one face for all of them.
      Andika is a literacy face (single-storey a/g) for Latin glyphs a child

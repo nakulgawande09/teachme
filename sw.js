@@ -1,7 +1,7 @@
 /* Akshar Khel service worker. Classic (not a module — Firefox still lacks
    module worker support). Bump VERSION on every deploy; it is the only knob. */
 
-const VERSION = '2026.08.25';
+const VERSION = '2026.08.26';
 const SHELL = `akshar-shell-${VERSION}`;
 const FONTS = 'akshar-fonts-v1';   // content-addressed URLs — survives deploys
 const NAV_TIMEOUT_MS = 2500;

@@ -4,17 +4,24 @@ import {
 } from '../storage/progress.js';
 import { tonightsCard } from '../features/wordSchedule.js';
 import { snapshot } from '../storage/store.js';
+import { PACKS, LANGS, itemsOf, parseWordKey } from '../data/packs/index.js';
+import { enabledPacks } from '../features/words.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /**
- * Progress card.
+ * Progress.
  *
- * No charts, no percentages, no streaks, and no comparison to other children.
- * A parent wants two things: which letters have landed, and which are worth
- * sitting down with. Everything else is decoration that invites the wrong
- * kind of attention to a three-year-old's performance.
+ * Every number here counts something the child DID — words said back, letters
+ * finished, days the app was opened. None of them is a score: there is no
+ * percentage of a notional target, no streak to break, and nothing is compared
+ * to another child. The chart plots minutes a day because that is the one
+ * series actually stored (fourteen days of it), and because it answers the
+ * question a parent really has — is this a habit or is it drifting.
+ *
+ * All of it lives behind the hold-to-open door. Nothing on a screen the child
+ * sees ever counts anything.
  */
 export function progressCard(state) {
   if (state.storage === 'readonly') {
@@ -25,7 +32,6 @@ export function progressCard(state) {
   }
 
   const enabled = TRACK_IDS.filter((id) => state.settings.tracks[id]);
-  const tracks = enabled.map((id) => trackBlock(state, id)).join('');
   const struggles = enabled.flatMap((id) =>
     strugglingIn(state.progress.letters, id).map((row) => ({ ...row, trackId: id })));
 
@@ -38,12 +44,135 @@ export function progressCard(state) {
          </div>`).join('')}`
     : '';
 
-  const time = `<p class="pcard__body" style="margin-top:16px">
-      Today ${formatDuration(msToday())} · This week ${formatDuration(msThisWeek())}
-    </p>`;
+  const tracks = enabled.map((id) => trackBlock(state, id)).join('');
 
-  return card('Progress', tracks + worth + time);
+  return `${wordsTile(state)}
+    <div class="bento">${lettersTile(state, enabled)}${daysTile()}</div>
+    ${minutesCard()}
+    ${card('Letters brought to life', tracks + worth)}`;
 }
+
+/* ── the tiles ─────────────────────────────────────────────────────────── */
+
+/** Words the child has said back at least once, split by language. */
+function wordsTile(state) {
+  const rows = state.progress.words || {};
+  const packsOn = enabledPacks(state.settings);
+  const known = { en: 0, mr: 0 };
+  for (const key of Object.keys(rows)) {
+    const row = rows[key];
+    const parsed = parseWordKey(key);
+    if (!row || !parsed || !row.gotIt || !packsOn.includes(parsed.packId)) continue;
+    if (known[parsed.lang] !== undefined) known[parsed.lang] += 1;
+  }
+  const total = packsOn.reduce(
+    (n, id) => n + itemsOf(id).length * (PACKS[id]?.langs.length || 0), 0);
+  const sum = known.en + known.mr;
+
+  // The bar is scaled to the whole pack, not to the two segments: a split bar
+  // that fills the width whatever the count reads as "finished". Both segments
+  // are named in the key underneath, because hue alone is unreadable to a
+  // colour-blind parent, and a 2px gap separates them on the surface.
+  const rest = Math.max(0, total - sum);
+  const bar = sum
+    ? `<div class="pbar" role="img"
+            aria-label="${sum} of ${total}: ${known.en} English, ${known.mr} मराठी">
+         ${known.en ? `<i data-series="en" style="flex:${known.en}"></i>` : ''}
+         ${known.mr ? `<i data-series="mr" style="flex:${known.mr}"></i>` : ''}
+         ${rest ? `<i data-series="rest" style="flex:${rest}"></i>` : ''}
+       </div>
+       <p class="pkey">
+         <span><i data-series="en"></i>${esc(LANGS.en.name)} ${known.en}</span>
+         <span><i data-series="mr"></i>${esc(LANGS.mr.name)} ${known.mr}</span>
+       </p>`
+    : `<p class="pcard__body">Nothing yet. The first one usually lands in a day or two.</p>`;
+
+  return `<section class="pcard pcard--hero" data-tint="sky">
+    <h3 class="pcard__eyebrow">Words he can say back</h3>
+    <p class="pstat"><b>${sum}</b><span>of ${total}</span></p>
+    ${bar}
+  </section>`;
+}
+
+function lettersTile(state, enabled) {
+  const traceable = enabled.filter((id) => TRACKS[id].traceable);
+  const lit = traceable.reduce(
+    (n, id) => n + Object.keys(state.progress.done[id] || {}).length, 0);
+  const all = traceable.reduce((n, id) => n + lettersOf(id).length, 0);
+  const names = traceable.map((id) => TRACKS[id].name).join(' + ') || 'no tracks on';
+
+  return `<section class="pcard pcard--tile" data-tint="rose">
+    <h3 class="pcard__eyebrow">Letters lit</h3>
+    <p class="pstat"><b>${lit}</b><span>of ${all}</span></p>
+    <p class="ptile__foot">${esc(names)}</p>
+  </section>`;
+}
+
+function daysTile() {
+  const days = lastDays(14);
+  const played = days.filter((d) => d.ms > 0).length;
+
+  return `<section class="pcard pcard--tile" data-tint="mint">
+    <h3 class="pcard__eyebrow">Played</h3>
+    <p class="pstat"><b>${played}</b><span>${played === 1 ? 'day' : 'days'}</span></p>
+    <p class="ptile__foot">Today ${formatDuration(msToday())} · week ${formatDuration(msThisWeek())}</p>
+  </section>`;
+}
+
+/* ── minutes a day ─────────────────────────────────────────────────────── */
+
+/** The last `n` days, oldest first, from the usage log. */
+function lastDays(n) {
+  const days = snapshot().usage.days || {};
+  const out = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    out.push({ key, date: d, ms: days[key] || 0 });
+  }
+  return out;
+}
+
+/**
+ * Fourteen days of minutes, as bars.
+ *
+ * Bars rather than a line: each day is its own bucket, and a line between two
+ * days would draw minutes that were never played. Rounded tops anchored to the
+ * baseline, a 2px gap between bars, and only two labels — today and the
+ * longest day — because a number over every bar is noise, not information.
+ */
+function minutesCard() {
+  const days = lastDays(14);
+  const mins = days.map((d) => Math.round(d.ms / 60000));
+  const peak = Math.max(...mins);
+
+  if (!peak) {
+    return card('Minutes a day',
+      `<p class="pcard__body">Nothing recorded in the last two weeks.</p>`);
+  }
+
+  const peakIndex = mins.lastIndexOf(peak);
+  const bars = days.map((d, i) => {
+    const m = mins[i];
+    const label = i === days.length - 1 || i === peakIndex;
+    return `<div class="pbar-col" title="${esc(dayLabel(d.date))} · ${m} min">
+      <span class="pbar-num" data-on="${label && m ? 1 : 0}">${m || ''}</span>
+      <i style="height:${m ? Math.max(4, Math.round((m / peak) * 100)) : 0}%"
+         data-zero="${m ? 0 : 1}"
+         data-today="${i === days.length - 1 ? 1 : 0}"></i>
+    </div>`;
+  }).join('');
+
+  return `<section class="pcard">
+    <h3 class="pcard__eyebrow">Minutes a day · last 14</h3>
+    <div class="pchart">${bars}</div>
+    <p class="pchart__axis"><span>${esc(dayLabel(days[0].date))}</span><span>today</span></p>
+  </section>`;
+}
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const dayLabel = (d) => `${DAY_NAMES[d.getDay()]} ${d.getDate()}`;
 
 function trackBlock(state, trackId) {
   const track = TRACKS[trackId];

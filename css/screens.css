@@ -13,6 +13,50 @@
 #app[data-screen="words"]  .screen--words,
 #app[data-screen="shloka"] .screen--shloka{ display:flex; animation:akFade 260ms ease both }
 
+/* ── colour fields ──────────────────────────────────────────────────────
+   Three screens are one saturated colour, edge to edge. A two-year-old
+   cannot read "मराठी", but learns in two days that the red screen is the one
+   with क on it — so the colour each track already owns is promoted from an
+   accent rule to the whole screen, and becomes the navigation.
+
+   --screen-ink is the single hook everything else reads: on a field it is
+   the cream, everywhere else it is unset and each component keeps its own
+   colour. That keeps this to one declaration per screen instead of a
+   parallel white-text rule for every element on it. */
+#app{ background:var(--field,var(--paper)); transition:background 320ms var(--settle) }
+#app[data-screen="words"]{ --field:var(--haldi); --screen-ink:var(--card) }
+#app[data-screen="quiz"] { --field:var(--track-color); --screen-ink:var(--card) }
+#app[data-screen="done"] { --field:var(--leaf); --screen-ink:var(--card) }
+/* The words recall belongs to the words track, not to whichever letter track
+   happened to be open before it. Overriding --track-color rather than --field
+   moves the speaker glyph and every other derived colour with the field —
+   otherwise the hero speaker stayed peacock on a haldi screen. */
+#app[data-screen="quiz"][data-scope="words"]{ --track-color:var(--haldi) }
+#app[data-motion="reduced"]{ transition:none }
+@media (prefers-reduced-motion:reduce){ #app{ transition:none } }
+
+/* On a field every chrome control becomes a translucent plate: a haldi
+   speaker on a haldi screen is an invisible button. */
+#app[data-screen="words"] .btn-round,
+#app[data-screen="quiz"]  .btn-round,
+#app[data-screen="done"]  .btn-round{
+  background:rgba(255,255,255,.2); border-color:transparent;
+  box-shadow:none; color:var(--card);
+}
+#app[data-screen="words"] .btn-round:active,
+#app[data-screen="quiz"]  .btn-round:active,
+#app[data-screen="done"]  .btn-round:active{ box-shadow:none }
+/* the progress dots read against the field, not against paper */
+#app[data-screen="words"] .dots i,
+#app[data-screen="quiz"]  .dots i,
+#app[data-screen="done"]  .dots i{ border-color:rgba(255,255,255,.45) }
+#app[data-screen="words"] .dots i[data-on="1"],
+#app[data-screen="quiz"]  .dots i[data-on="1"],
+#app[data-screen="done"]  .dots i[data-on="1"]{ background:var(--card); border-color:var(--card) }
+#app[data-screen="words"] .dots i[data-current="1"],
+#app[data-screen="quiz"]  .dots i[data-current="1"],
+#app[data-screen="done"]  .dots i[data-current="1"]{ box-shadow:0 0 0 4px rgba(255,255,255,.26) }
+
 /* Screens cross-fade and settle rather than snapping, so a child can follow
    where the thing they tapped went. Short enough not to feel like waiting.
    Every animated element carries data-motion so the opt-in reduced-motion
@@ -35,7 +79,7 @@
 .listen__glyph{
   font:400 clamp(96px,30vw,190px)/.95 var(--track-font); color:var(--track-color);
 }
-.listen__sound{ font:400 15px var(--face-mono); color:var(--peacock) }
+.listen__sound{ font:400 15px var(--face-mono); color:var(--screen-ink,var(--peacock)) }
 /* 8:5 frame — the slot a commissioned illustration drops into as
    /art/<track>/<glyph>.svg. Emoji fill it until then. */
 .listen__art{
@@ -203,6 +247,7 @@
   transition:transform var(--press) ease, box-shadow var(--press) ease;
 }
 .wturn:active{ transform:translateY(2px); box-shadow:var(--sh-press) }
+#app[data-screen="words"] .wturn{ border-color:transparent; box-shadow:var(--sh-track) }
 .wturn__art{
   font-size:min(clamp(110px,44vw,190px),30vh);
   font-size:min(clamp(110px,44vw,190px),30dvh);
@@ -232,11 +277,22 @@
   opacity:0; pointer-events:none;
   transition:opacity 400ms ease, transform var(--press) ease, box-shadow var(--press) ease;
 }
+/* Two dots told apart only by hue is a coin-flip for the one-in-twelve men
+   with red-green colour blindness — and on the haldi field neither read at
+   all. A plate plus a glyph says which is which without depending on colour,
+   and stays quiet enough that a child chasing the picture skips over it. */
+.wmark{ background:rgba(255,255,255,.18) }
 .wmark::after{
-  content:''; width:13px; height:13px; border-radius:50%;
-  background:var(--leaf); opacity:.4;
+  content:''; width:22px; height:22px;
+  background:currentColor; color:var(--card); opacity:.92;
+  -webkit-mask:var(--mark-glyph) center/contain no-repeat;
+  mask:var(--mark-glyph) center/contain no-repeat;
+  --mark-glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4.5 4.5L19 7'/%3E%3C/svg%3E");
 }
-.wmark--notyet::after{ background:var(--kumkum); opacity:.35 }
+.wmark--notyet::after{
+  opacity:.66;
+  --mark-glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.6-5.9'/%3E%3Cpath d='M20 4v4h-4'/%3E%3C/svg%3E");
+}
 #app[data-turn="settle"] .wmark{ opacity:1; pointer-events:auto }
 
 /* ── overlays ──────────────────────────────────────────────────────────── */
@@ -287,6 +343,11 @@
   font:500 12px var(--face-ui); color:var(--ink-4);
   text-decoration:underline; padding:12px; cursor:pointer;
 }
+/* leaf on a leaf field is an invisible button */
+#app[data-screen="done"] .btn-big--leaf{
+  background:var(--card); color:var(--leaf); box-shadow:var(--sh-track);
+}
+#app[data-screen="done"] .link-grown{ color:rgba(255,255,255,.76) }
 .link-grown[hidden]{ display:none }
 
 /* gate */
