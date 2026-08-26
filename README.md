@@ -45,7 +45,13 @@ js/parent/          hold-to-reveal gate, dashboard (incl. the tonight card),
 js/render/          state → attributes on #app; CSS does the rest
 js/features/        pure schedulers (letters + words), the daily orchestrators,
                     the word-turn machine, session clock
-sw.js               offline shell (ASSETS is hand-maintained — ?selftest=1 checks it)
+sw.js               offline shell (ASSETS is hand-maintained — ?selftest=1 checks it).
+                    CSS and JS are network-first with a cache fallback, because
+                    they ARE the build: under stale-while-revalidate the launch
+                    after a deploy rendered the old app and the change only
+                    appeared one launch later. Icons stay cache-first. VERSION
+                    carries a same-day counter — two deploys sharing one string
+                    reuse the shell cache, and the second never lands.
 ```
 
 Rendering is **attributes on `#app` driven by CSS selectors**, not style writes:

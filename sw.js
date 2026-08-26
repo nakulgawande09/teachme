@@ -1,10 +1,13 @@
 /* Akshar Khel service worker. Classic (not a module — Firefox still lacks
-   module worker support). Bump VERSION on every deploy; it is the only knob. */
+   module worker support). Bump VERSION on every deploy; it is the only knob.
+   The trailing counter matters: two deploys on one day with the same string
+   reuse the same shell cache, and the second one never reaches the device. */
 
-const VERSION = '2026.08.26';
+const VERSION = '2026.08.26.2';
 const SHELL = `akshar-shell-${VERSION}`;
 const FONTS = 'akshar-fonts-v1';   // content-addressed URLs — survives deploys
 const NAV_TIMEOUT_MS = 2500;
+const CODE_TIMEOUT_MS = 1500;
 
 /* Hand-maintained, which is the real cost of having no build step.
    ?selftest=1 cross-references this list against what the page actually
@@ -83,8 +86,45 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(navigationStrategy(request));
     return;
   }
+
+  // The CSS and JS ARE the build, so they go to the network first.
+  //
+  // Under stale-while-revalidate they came back from cache instantly and the
+  // new copy only landed in the background — so the launch right after a
+  // deploy rendered the OLD app while quietly downloading the new one, and
+  // the change appeared one launch later. That is indistinguishable from a
+  // deploy that never happened, and it is how this was first reported.
+  //
+  // Offline still works: fetch rejects immediately with no connection and we
+  // fall straight to the cache. The timeout is for the connected-but-dead
+  // case, and costs one wait for the whole parallel batch, not one per file.
+  if (/\.(?:css|js)$/.test(url.pathname)) {
+    event.respondWith(networkFirst(request, SHELL, CODE_TIMEOUT_MS));
+    return;
+  }
+
+  // Icons and the manifest change far less often than the code and are worth
+  // an instant launch, so they stay stale-while-revalidate.
   event.respondWith(staleWhileRevalidate(request, SHELL));
 });
+
+/** Fresh if the network can answer in time, otherwise whatever we have. */
+async function networkFirst(request, cacheName, ms) {
+  const cache = await caches.open(cacheName);
+  try {
+    const fresh = await withTimeout(fetch(request), ms);
+    if (shouldStore(fresh)) {
+      cache.put(request, fresh.clone()).catch(() => {});
+      return fresh;
+    }
+    // A 404 or a 500 is not an answer — prefer the copy that used to work.
+    const stale = await cache.match(request);
+    if (stale) return stale;
+    return fresh || Response.error();
+  } catch {
+    return (await cache.match(request)) || Response.error();
+  }
+}
 
 /** A new deploy is picked up on the next online launch, without a prompt —
  *  a "new version available, reload?" dialog is a UI a toddler will tap. */
