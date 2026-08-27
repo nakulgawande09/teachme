@@ -9,13 +9,56 @@
  *  a corridor narrower than the visible target rejects honest tracing. */
 export const TOL_FACTOR = Object.freeze({ gentle: 0.085, normal: 0.068, strict: 0.055 });
 
-/** Fraction of a MASK component's cells that must be coloured in. */
-export const THRESHOLD = Object.freeze({ gentle: 0.60, normal: 0.70, strict: 0.80 });
+/** Fraction of a MASK component's cells that must be coloured in.
+ *  At the old 0.70 a child coloured about two thirds of अ and the letter
+ *  declared itself finished under their hand — measured, not guessed. */
+export const THRESHOLD = Object.freeze({ gentle: 0.80, normal: 0.90, strict: 0.95 });
 
 /** Fraction of a stroke's ORDERED samples that must be passed to accept it.
- *  Higher than the mask threshold because progress already forgives wobble
- *  (the skip-ahead window) — this mostly excuses lifting off a bit early. */
-export const PROGRESS = Object.freeze({ gentle: 0.80, normal: 0.88, strict: 0.93 });
+ *
+ *  This governs the MIDDLE of the stroke only. On its own it let a stroke
+ *  drawn to 90% of its length count as finished, because 88% of the samples
+ *  had been passed and nothing ever asked whether the child got to the end.
+ *  Both ends are now anchored explicitly — see reachedEnd — so this number
+ *  can stay generous about wobble without also excusing an unfinished
+ *  stroke. */
+export const PROGRESS = Object.freeze({ gentle: 0.88, normal: 0.95, strict: 0.98 });
+
+/** The end window may never be more than this much of the stroke's own
+ *  length, and never smaller than a couple of px of slop. */
+export const END_MAX_RATIO = 0.10;
+export const END_MIN_PX = 6;
+
+/**
+ * How close to the last sample counts as having arrived.
+ *
+ * Tolerance does two different jobs and they need different numbers. Across
+ * the stroke it is a CORRIDOR, and it has to be at least as wide as the ghost
+ * letter or honest tracing gets rejected — that was the original field bug.
+ * Along the stroke it is an ARRIVAL test, and there a fixed 23.8px corridor
+ * is a quarter of A's 98px crossbar, so stopping a quarter short still read
+ * as reaching the end. The window is therefore capped to a tenth of the
+ * stroke's own length: short strokes get a short window, long ones keep the
+ * corridor's forgiveness.
+ */
+export function endWindow(tol, lengthPx) {
+  return Math.max(END_MIN_PX, Math.min(tol, lengthPx * END_MAX_RATIO));
+}
+
+/**
+ * Has this point reached the end of the stroke?
+ *
+ * The stroke is not finished until the child gets there. A percentage of
+ * samples passed cannot express that — 88% of a stroke IS 88% of its samples,
+ * so stopping short looked identical to wobbling through the middle.
+ */
+export function reachedEnd(samples, point, window) {
+  if (!samples.length) return false;
+  const last = samples[samples.length - 1];
+  const dx = point[0] - last[0];
+  const dy = point[1] - last[1];
+  return dx * dx + dy * dy < window * window;
+}
 
 /** How many samples a wobble may skip without losing progress. At the sample
  *  density below this bridges an off-corridor arc of roughly 3 × tolerance. */
@@ -110,7 +153,16 @@ export function samplePath(path, slate, tol = 20) {
 
   const f = slate / 100; // paths are authored in a 0-100 viewBox
   const lengthPx = length * f;
-  const count = Math.max(8, Math.min(80, Math.ceil(lengthPx / (tol * 0.9)) + 1));
+  // Spacing is exactly one tolerance, and the floor is low.
+  //
+  // At 0.9x tolerance, and worse under the old floor of 8 samples on a short
+  // stroke, samples sat far closer together than the corridor is wide — so a
+  // finger resting on one sample was inside the corridor of the next two or
+  // three, and progress ran ahead of the hand. A's crossbar got 8 samples
+  // 13.7px apart inside a 23.8px corridor, and the letter finished with 76%
+  // of it drawn. At exactly one tolerance a point clears the sample it is on
+  // and no more.
+  const count = Math.max(4, Math.min(80, Math.ceil(lengthPx / tol) + 1));
   const points = [];
   for (let k = 0; k < count; k++) {
     const pt = path.getPointAtLength((length * k) / (count - 1));
@@ -135,21 +187,22 @@ export function samplePath(path, slate, tol = 20) {
 export function advanceProgress(samples, progress, point, tol, skip = SKIP_AHEAD) {
   const tolSq = tol * tol;
   const startTolSq = (tol * 1.5) ** 2;
+  const windowEnd = Math.min(samples.length, progress + skip + 1);
   let p = progress;
-  for (;;) {
-    const windowEnd = Math.min(samples.length, p + skip + 1);
-    let moved = false;
-    for (let i = p; i < windowEnd; i++) {
-      const dx = point[0] - samples[i][0];
-      const dy = point[1] - samples[i][1];
-      if (dx * dx + dy * dy < (i === 0 ? startTolSq : tolSq)) {
-        p = i + 1;
-        moved = true;
-        break;
-      }
-    }
-    if (!moved || p >= samples.length) return p;
+  // One pass, taking the FURTHEST sample in the window this point reaches.
+  //
+  // This used to loop: advance to the first match, then rescan from there,
+  // and repeat. Each rescan let the same single point step through another
+  // sample, so one fingertip could walk several samples forward at once and
+  // progress overtook the hand. Scanning to the furthest match keeps the
+  // skip-ahead window's forgiveness — a wobble off the corridor is still
+  // bridged — without letting one point spend the window more than once.
+  for (let i = progress; i < windowEnd; i++) {
+    const dx = point[0] - samples[i][0];
+    const dy = point[1] - samples[i][1];
+    if (dx * dx + dy * dy < (i === 0 ? startTolSq : tolSq)) p = i + 1;
   }
+  return p;
 }
 
 /**

@@ -119,7 +119,7 @@ smaller half of the method**: the dashboard's *Tonight* card hands the parents f
 (today's misses first, languages alternating) and a couple of authored ask-your-child
 questions, because the words said back at the dinner table are the ones that stick.
 
-## Four decisions worth knowing before you change anything
+## Five decisions worth knowing before you change anything
 
 **Silence beats a wrong sound.** Almost no device ships a Marathi voice. The old build let the
 request fall through to a Hindi voice, which deletes the final schwa (कमळ → *kamal*) and has no
@@ -128,6 +128,18 @@ refuses to speak when the resolved voice's language does not match the request, 
 Voice card in the grown-ups area says exactly why. Do not "fix" the silence by widening the
 fallback chain. Fix it by recording the clips — see `docs/voice-and-audio.md` for the spec
 (~200 clips, one afternoon, under 3 MB); `js/audio/resolver.js` is already the seam.
+
+**A stroke is not finished until the child reaches the end of it.** Percentage of samples
+passed cannot express "done" — 88% of a stroke *is* 88% of its samples, so stopping short
+looked exactly like wobbling through the middle, and A completed with 76% of its crossbar
+drawn. Both ends are anchored explicitly now. The subtlety is that tolerance does two jobs:
+across the stroke it is a **corridor** and must stay at least as wide as the ghost letter, or
+honest tracing gets rejected (the original field bug); along the stroke it is an **arrival**
+test, and there a fixed 23.8px corridor is a quarter of A's 98px crossbar. `endWindow()` caps
+arrival at a tenth of each stroke's own length. Measured after: every stroke needs 90-97%
+drawn, a wobbly *complete* trace still passes, and the mask engine went from finishing at 69%
+of a letter coloured to 92%. If you touch these numbers, re-run both directions — over-tight
+is the worse bug.
 
 **Unreviewed stroke order is not taught.** `js/data/strokes.js` gates each glyph on a
 `reviewed` flag. All 26 Latin capitals are reviewed and get the demo → follow-the-dots →

@@ -1,5 +1,6 @@
 import {
   samplePath, advanceProgress, eventPoints, tolerance, progressNeed, pathEnds, inkBudget,
+  reachedEnd, endWindow,
 } from './geometry.js';
 import { createCrayon, CRAY } from './crayon.js';
 import { setVars, setAttr, replaceChildren } from '../core/dom.js';
@@ -11,12 +12,15 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * dots, one stroke at a time, in writing order.
  *
  * Validation is ORDERED progress along the path (see advanceProgress in
- * geometry.js): start at the dot, travel the stroke's way, wobble forgiven.
- * Lifting the finger keeps whatever progress was made — toddlers draw in
- * dabs — and only a gesture that drew plenty while following nothing gets
- * wiped and nudged. A stroke whose total ink runs far past the path length
- * is a scribble that happened to sweep the corridor; it is wiped whole
- * rather than accepted.
+ * geometry.js): start at the dot, travel the stroke's way, wobble forgiven,
+ * and ARRIVE AT THE END. Both ends are anchored explicitly, because a
+ * fraction of samples cannot express "finished" — at 88% of samples a stroke
+ * drawn to 90% of its length counted as done, and the letter completed with
+ * the child still mid-stroke. Lifting the finger keeps whatever progress was
+ * made — toddlers draw in dabs — and only a gesture that drew plenty while
+ * following nothing gets wiped and nudged. A stroke whose total ink runs far
+ * past the path length is a scribble that happened to sweep the corridor; it
+ * is wiped whole rather than accepted.
  *
  * Only reached for glyphs whose paths a human has reviewed — see
  * js/data/strokes.js. Everything else uses the mask engine, which never
@@ -35,6 +39,8 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
   let samples = [];
   let lengthPx = 0;
   let progress = 0;
+  let atEnd = false;       // has the finger arrived at the stroke's last sample
+  let endWin = 0;          // arrival radius, scaled to THIS stroke's length
   let strokeInk = 0;       // ink spent on the current stroke, across gestures
   let gestureInk = 0;
   let gestureStart = 0;    // progress when the current gesture began
@@ -104,6 +110,7 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     const sampled = samplePath(p, slate, tol);
     samples = sampled.points;
     lengthPx = sampled.lengthPx;
+    endWin = endWindow(tol, lengthPx);
     if (!samples.length) console.warn('strokeEngine: could not sample stroke', strokeIndex);
   }
 
@@ -113,6 +120,7 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     samples = [];
     lengthPx = 0;
     progress = 0;
+    atEnd = false;
     strokeInk = 0;
 
     if (strokeIndex >= strokes.length) {
@@ -132,14 +140,20 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     drawing = false;
     crayon?.rollback();
     progress = 0;
+    atEnd = false;
     strokeInk = 0;
     cb.onRetry?.();
   }
 
   function feed(points) {
     if (!samples.length) return;
-    for (const p of points) progress = advanceProgress(samples, progress, p, tol);
-    if (progress / samples.length >= need) {
+    for (const p of points) {
+      progress = advanceProgress(samples, progress, p, tol);
+      if (reachedEnd(samples, p, endWin)) atEnd = true;
+    }
+    // Both conditions, always: enough of the path followed AND the end
+    // actually reached. Either alone accepts an unfinished stroke.
+    if (atEnd && progress / samples.length >= need) {
       if (strokeInk > inkBudget(lengthPx, slate)) {
         rejectStroke();
         return;
@@ -172,6 +186,7 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
       samples = [];
       lengthPx = 0;
       progress = 0;
+      atEnd = false;
       strokeInk = 0;
       fallbackInk = 0;
       finished = false;
@@ -239,6 +254,7 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
     retry() {
       crayon?.rollback();
       progress = 0;
+      atEnd = false;
       strokeInk = 0;
     },
 
@@ -252,6 +268,7 @@ export function createStrokeEngine({ nodes, slate, strokes, strictness, callback
       drawing = false;
       samples = [];
       progress = 0;
+      atEnd = false;
     },
   };
 }

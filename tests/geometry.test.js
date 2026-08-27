@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   slateSize, tolerance, threshold, progressNeed, pathEnds, pathNumbers,
   markHits, advanceProgress, SEED_VECTORS, MAX_INK_RATIO, SKIP_AHEAD, inkBudget,
+  reachedEnd, endWindow, THRESHOLD, PROGRESS, END_MAX_RATIO, END_MIN_PX,
 } from '../js/trace/geometry.js';
 
 test('the slate is square and always fits the viewport', () => {
@@ -41,10 +42,86 @@ test('the normal corridor is at least as wide as the ghost letter', () => {
 test('thresholds are ordered and default safely', () => {
   assert.ok(threshold('gentle') < threshold('normal'));
   assert.ok(threshold('normal') < threshold('strict'));
-  assert.equal(threshold(undefined), 0.7);
+  // Assert the FALLBACK, not the number: pinning the literal here only made
+  // the test fail when the value was deliberately raised.
+  assert.equal(threshold(undefined), THRESHOLD.normal);
+  assert.equal(threshold('nonsense'), THRESHOLD.normal);
   assert.ok(progressNeed('gentle') < progressNeed('normal'));
   assert.ok(progressNeed('normal') < progressNeed('strict'));
   assert.equal(progressNeed(undefined), progressNeed('normal'));
+});
+
+/* A child colouring two thirds of अ had the letter finish under their hand.
+   Whatever these are tuned to, they must demand most of the shape. */
+test('a mask letter is not finished when a third of it is blank', () => {
+  assert.ok(THRESHOLD.gentle >= 0.75, 'even the gentlest needs most of the shape');
+  assert.ok(THRESHOLD.normal >= 0.85);
+  assert.ok(THRESHOLD.strict <= 0.97, 'but never so strict it cannot be met');
+});
+
+/* ── the end anchor ────────────────────────────────────────────────────── */
+
+test('reachedEnd is true only near the last sample', () => {
+  const win = 18;
+  assert.equal(reachedEnd(LINE, LINE[LINE.length - 1], win), true, 'exactly at the end');
+  assert.equal(reachedEnd(LINE, LINE[0], win), false, 'at the start is not the end');
+  assert.equal(reachedEnd(LINE, LINE[LINE.length - 3], win), false, 'three samples short');
+  assert.equal(reachedEnd([], [0, 0], win), false, 'an unsampled stroke has no end');
+});
+
+/* The corridor has to be at least as wide as the ghost letter or honest
+   tracing is rejected — but on A's 98px crossbar that same 23.8px is a
+   QUARTER of the stroke, and stopping a quarter short read as arriving. */
+test('the arrival window shrinks with the stroke, so short strokes must be finished', () => {
+  const tol = 23.8;
+  assert.equal(endWindow(tol, 752), tol, 'a long stroke keeps the corridor');
+  assert.ok(endWindow(tol, 98) < tol * 0.5, "A's crossbar gets a much tighter window");
+  assert.equal(endWindow(tol, 98), 98 * END_MAX_RATIO);
+  assert.equal(endWindow(tol, 10), END_MIN_PX, 'never zero, or a tiny stroke is unwinnable');
+  // Monotonic: a longer stroke never gets a tighter window than a shorter one.
+  let prev = 0;
+  for (const len of [10, 50, 98, 200, 400, 800]) {
+    const w = endWindow(tol, len);
+    assert.ok(w >= prev, `window must not shrink as the stroke grows (${len}px)`);
+    prev = w;
+  }
+});
+
+test('stopping a quarter short of a SHORT stroke does not count as arriving', () => {
+  const tol = 23.8;
+  const CROSSBAR = Array.from({ length: 6 }, (_, i) => [10 + i * 19.6, 50]); // 98px
+  const win = endWindow(tol, 98);
+  const quarterShort = [10 + 98 * 0.76, 50];
+  assert.equal(reachedEnd(CROSSBAR, quarterShort, win), false);
+  assert.equal(reachedEnd(CROSSBAR, [10 + 98 * 0.97, 50], win), true, 'but nearly there does');
+});
+
+/* The exact shape of the report: a stroke drawn to 90% of its length passed
+   the sample check and completed, with the child still mid-stroke. */
+test('following the corridor is not enough without arriving', () => {
+  const tol = 18;
+  const drawn = LINE.slice(0, Math.round(LINE.length * 0.9));
+  let p = 0;
+  let atEnd = false;
+  for (const pt of drawn) {
+    p = advanceProgress(LINE, p, pt, tol);
+    if (reachedEnd(LINE, pt, endWindow(tol, LINE_LEN))) atEnd = true;
+  }
+  assert.ok(p / LINE.length >= progressNeed('normal'),
+    'the sample check alone is satisfied — this is why it used to complete');
+  assert.equal(atEnd, false, 'but the end was never reached, so the stroke is not done');
+});
+
+test('an honest trace all the way to the end does complete', () => {
+  const tol = 18;
+  let p = 0;
+  let atEnd = false;
+  for (const [x, y] of LINE) {
+    const pt = [x + 6, y];                 // a little wobble, inside the corridor
+    p = advanceProgress(LINE, p, pt, tol);
+    if (reachedEnd(LINE, pt, endWindow(tol, LINE_LEN))) atEnd = true;
+  }
+  assert.ok(atEnd && p / LINE.length >= progressNeed('normal'));
 });
 
 test('pathEnds reads start, end and exit tangent off a two-point line', () => {
@@ -72,6 +149,7 @@ test('pathNumbers handles decimals and negatives', () => {
 
 // A straight vertical stroke, sampled every 15px — like a rendered path.
 const LINE = Array.from({ length: 21 }, (_, i) => [100, 20 + i * 15]);
+const LINE_LEN = 20 * 15;
 const TOL = 18;
 
 const run = (points, samples = LINE) => {
