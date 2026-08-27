@@ -92,8 +92,14 @@
   /* space — 4pt scale, only these */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
 
-  /* tap targets — floors, not targets */
-  --tap:64px; --tap-lg:96px;
+  /* Tap targets — floors, not targets.
+     --tap is the adult floor and comfortably clears the 44px platform
+     minimum. --tap-child is the one the child's own controls use: the
+     research on 2-3 year olds puts the workable target at about 2cm square,
+     roughly four times the adult recommendation, because at this age the big
+     arm-and-hand movements are developed and the fine motor control is not.
+     2cm is ~76 CSS px. Anything a child is meant to hit uses this. */
+  --tap:64px; --tap-child:76px; --tap-lg:96px;
 
   /* radii — scale with the box; roughly 0.33 x height for squircles */
   --r-pill:999px;

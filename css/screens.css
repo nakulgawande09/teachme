@@ -97,6 +97,31 @@
 .listen__glyph{
   font:400 clamp(96px,30vw,190px)/.95 var(--track-font); color:var(--track-color);
 }
+/* The trace bar carries four controls plus the bead rail. At 2cm each that is
+   304px of buttons before any gap, and a 320px phone has 288px of room — the
+   targets do not fit, physically. A clipped control is worse than one at the
+   adult floor, so on the narrowest screens only, this bar steps down. */
+/* The same argument on the other axis. A 2cm control row costs 12px more
+   height than the adult one, and a landscape phone has no spare height at
+   all — the grown-up marks at the bottom of the words turn were clipped. On
+   a short screen the bar steps back to the adult floor; the child's own big
+   targets (the picture, the answer cards) are untouched. */
+@media (max-height:430px){
+  .bar .btn-round{ width:var(--tap); height:var(--tap) }
+  .bar__spacer{ width:var(--tap) }
+}
+
+@media (max-width:360px){
+  .screen--trace .bar{ gap:6px }
+  .screen--trace .bar .btn-round{ width:var(--tap); height:var(--tap) }
+  /* The bead rail was flex:none, so it never yielded and simply pushed the
+     Home button off the screen. It gives up its pill and its padding here —
+     the dots themselves stay, because the finish line has to be visible from
+     inside the activity. */
+  .screen--trace .beads{ padding:0; background:none; gap:6px; flex:0 1 auto; min-width:0 }
+  .screen--trace .bead{ width:12px; height:12px }
+}
+
 .listen__sound{ font:400 15px var(--face-mono); color:var(--screen-ink,var(--peacock)) }
 /* 8:5 frame — the slot a commissioned illustration drops into as
    /art/<track>/<glyph>.svg. Emoji fill it until then. */

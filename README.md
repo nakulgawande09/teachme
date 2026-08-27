@@ -28,6 +28,10 @@ Deploying is still `git push` — Vercel serves the tree as-is.
 | `?nosw=1` | Unregisters the service worker, clears every cache, reloads once. Use this the moment a deploy looks stale. |
 | `npm run contrast` | Reads `css/tokens.css` and fails if any field/ink pair drops below WCAG AA. Runs as part of `npm test`. |
 
+The visual system is written down in [`STYLE.md`](STYLE.md) — the palette's two derived
+families, why haldi can never be a foreground, the 2cm child tap target and its two
+documented exceptions, and what was considered and rejected.
+
 ## Shape of the thing
 
 ```
