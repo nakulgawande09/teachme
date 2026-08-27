@@ -26,6 +26,7 @@ Deploying is still `git push` — Vercel serves the tree as-is.
 | `?selftest=1` | Boot assertions — orphaned `data-action`s, animations missing `data-motion`, unloaded typefaces, glyphs with no engine, emoji leaking out of the art frame, and assets missing from the service-worker shell. |
 | `?dev=1` | Deep-freezes state after every dispatch (a mutation throws) and warns on leaked timers after a navigation. |
 | `?nosw=1` | Unregisters the service worker, clears every cache, reloads once. Use this the moment a deploy looks stale. |
+| `npm run contrast` | Reads `css/tokens.css` and fails if any field/ink pair drops below WCAG AA. Runs as part of `npm test`. |
 
 ## Shape of the thing
 
@@ -144,7 +145,13 @@ on the grid card — no count, no score. Both engines converge on the same `come
 **Colour is the navigation, and every number lives behind the door.** Each track already
 owned a colour; the child's screens now wear it edge to edge — peacock is English, kumkum is
 मराठी, indigo is संस्कृत, haldi is words — so a two-year-old who cannot read "मराठी" still
-learns in two days that the red screen is the one with क on it. Three screens are a full
+learns in two days that the red screen is the one with क on it. Promoting a colour from an
+accent to a whole screen changes what it owes: three variables now travel together and must
+never be set apart — `--track-color` (the field), `--track-ink` (what is legible **on** it),
+and `--track-mark` (the track drawn as a foreground on cream). Haldi is the reason all three
+exist: it is a light hue, so it takes dark ink as a field and cannot be drawn with at all
+(2.15:1 on `--card`). `npm run contrast` reads the real tokens and fails on anything under
+WCAG AA — the first cut of this design shipped cream on haldi and nobody noticed by eye. Three screens are a full
 field (`words`, `quiz`, `done`); everything on them reads `--screen-ink`, which is the single
 hook that flips type and chrome to cream, so adding an element to a field screen costs one
 declaration rather than a parallel white-text rule. The counts, the tiles and the fourteen-day

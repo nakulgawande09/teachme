@@ -19,9 +19,27 @@
   --haldi:#E0A02A;    /* audio, progress beads, "done", attention */
   --kumkum:#BE3F2C;   /* मराठी track */
   --peacock:#14706B;  /* English track, phonetic labels */
-  --leaf:#5E8B3A;     /* success, next, confirm */
+  --leaf:#547C34;     /* success, next, confirm */
   --leaf-ink:#41652A; /* leaf text on a leaf tint */
+  /* Haldi is the one hue that only works as a BACKGROUND: as a mark it is
+     2.15:1 on --card and 1.91:1 on --paper, under the 3:1 floor for a UI
+     graphic and nowhere near text. This is the step to draw with when haldi
+     has to be the foreground. Same idea as --leaf-ink above. */
+  --haldi-ink:#93691C;
   --indigo:#313B77;   /* संस्कृत track */
+
+  /* What each colour can carry when it is a whole SCREEN rather than an
+     accent. Measured, not judged: cream on haldi is 2.15:1, which fails even
+     the 3:1 floor for an icon — haldi is a LIGHT colour and takes dark ink.
+     The dark three take cream. Leaf sat a hair under 4.5:1 either way, so it
+     is the one hue that moved (#5E8B3A -> #547C34, cream now 4.61:1).
+     scripts/check_contrast.js is the acceptance test; run it after touching
+     any of these. */
+  --on-haldi:var(--ink);
+  --on-leaf:var(--card);
+  --on-peacock:var(--card);
+  --on-kumkum:var(--card);
+  --on-indigo:var(--card);
 
   /* Chart series. --peacock (#14706B) has chroma 0.08 and reads gray in a
      thin mark, so the chart uses a brightened step; the pair clears the
@@ -95,11 +113,21 @@
   --settle:cubic-bezier(.3,.8,.3,1);
   --scatter:cubic-bezier(.2,.7,.3,1);
 
-  /* set per-track by [data-track] below; defaults keep things sane */
+  /* set per-track by [data-track] below; defaults keep things sane.
+     --track-ink always travels with --track-color: change one without the
+     other and a track ends up writing cream on a light field. */
   --track-color:var(--peacock);
+  --track-ink:var(--on-peacock);
+  --track-mark:var(--peacock);
   --track-font:var(--face-latin);
 }
 
-[data-track="en"]{ --track-color:var(--peacock); --track-font:var(--face-latin); }
-[data-track="mr"]{ --track-color:var(--kumkum);  --track-font:var(--face-deva); }
-[data-track="sa"]{ --track-color:var(--indigo);  --track-font:var(--face-deva); }
+/* Three variables travel together and must never be set apart:
+     --track-color  the field, a BACKGROUND
+     --track-ink    what is legible ON that field
+     --track-mark   the track drawn as a FOREGROUND on cream or paper
+   For the three letter tracks colour and mark are the same. They differ only
+   for words, whose haldi is too light to draw with. */
+[data-track="en"]{ --track-color:var(--peacock); --track-ink:var(--on-peacock); --track-mark:var(--peacock); --track-font:var(--face-latin); }
+[data-track="mr"]{ --track-color:var(--kumkum);  --track-ink:var(--on-kumkum);  --track-mark:var(--kumkum);  --track-font:var(--face-deva); }
+[data-track="sa"]{ --track-color:var(--indigo);  --track-ink:var(--on-indigo);  --track-mark:var(--indigo);  --track-font:var(--face-deva); }

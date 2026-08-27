@@ -6,6 +6,7 @@
   "description": "A quiet alphabet toy — English, मराठी and संस्कृत letters to hear and trace.",
   "scripts": {
     "dev": "npx --yes serve -l 4321 .",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js && node scripts/check_contrast.js",
+    "contrast": "node scripts/check_contrast.js"
   }
 }

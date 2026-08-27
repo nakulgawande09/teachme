@@ -3,7 +3,7 @@
    The trailing counter matters: two deploys on one day with the same string
    reuse the same shell cache, and the second one never reaches the device. */
 
-const VERSION = '2026.08.26.2';
+const VERSION = '2026.08.26.3';
 const SHELL = `akshar-shell-${VERSION}`;
 const FONTS = 'akshar-fonts-v1';   // content-addressed URLs — survives deploys
 const NAV_TIMEOUT_MS = 2500;

@@ -24,24 +24,27 @@
    colour. That keeps this to one declaration per screen instead of a
    parallel white-text rule for every element on it. */
 #app{ background:var(--field,var(--paper)); transition:background 320ms var(--settle) }
-#app[data-screen="words"]{ --field:var(--haldi); --screen-ink:var(--card) }
-#app[data-screen="quiz"] { --field:var(--track-color); --screen-ink:var(--card) }
-#app[data-screen="done"] { --field:var(--leaf); --screen-ink:var(--card) }
+#app[data-screen="words"]{ --field:var(--haldi);       --screen-ink:var(--on-haldi) }
+#app[data-screen="quiz"] { --field:var(--track-color); --screen-ink:var(--track-ink) }
+#app[data-screen="done"] { --field:var(--leaf);        --screen-ink:var(--on-leaf) }
 /* The words recall belongs to the words track, not to whichever letter track
    happened to be open before it. Overriding --track-color rather than --field
    moves the speaker glyph and every other derived colour with the field —
    otherwise the hero speaker stayed peacock on a haldi screen. */
-#app[data-screen="quiz"][data-scope="words"]{ --track-color:var(--haldi) }
+#app[data-screen="quiz"][data-scope="words"]{
+  --track-color:var(--haldi); --track-ink:var(--on-haldi); --track-mark:var(--haldi-ink);
+}
 #app[data-motion="reduced"]{ transition:none }
 @media (prefers-reduced-motion:reduce){ #app{ transition:none } }
 
 /* On a field every chrome control becomes a translucent plate: a haldi
-   speaker on a haldi screen is an invisible button. */
+   speaker on a haldi screen is an invisible button. The stroke follows
+   --screen-ink, so it darkens on haldi and stays cream on the dark three. */
 #app[data-screen="words"] .btn-round,
 #app[data-screen="quiz"]  .btn-round,
 #app[data-screen="done"]  .btn-round{
   background:rgba(255,255,255,.2); border-color:transparent;
-  box-shadow:none; color:var(--card);
+  box-shadow:none; color:var(--screen-ink);
 }
 #app[data-screen="words"] .btn-round:active,
 #app[data-screen="quiz"]  .btn-round:active,
@@ -49,13 +52,28 @@
 /* the progress dots read against the field, not against paper */
 #app[data-screen="words"] .dots i,
 #app[data-screen="quiz"]  .dots i,
-#app[data-screen="done"]  .dots i{ border-color:rgba(255,255,255,.45) }
+#app[data-screen="done"]  .dots i{ border-color:var(--screen-ink); opacity:.55 }
 #app[data-screen="words"] .dots i[data-on="1"],
 #app[data-screen="quiz"]  .dots i[data-on="1"],
-#app[data-screen="done"]  .dots i[data-on="1"]{ background:var(--card); border-color:var(--card) }
+#app[data-screen="done"]  .dots i[data-on="1"]{
+  background:var(--screen-ink); border-color:var(--screen-ink); opacity:1;
+}
 #app[data-screen="words"] .dots i[data-current="1"],
 #app[data-screen="quiz"]  .dots i[data-current="1"],
-#app[data-screen="done"]  .dots i[data-current="1"]{ box-shadow:0 0 0 4px rgba(255,255,255,.26) }
+#app[data-screen="done"]  .dots i[data-current="1"]{
+  opacity:1; box-shadow:0 0 0 4px color-mix(in srgb, var(--screen-ink) 26%, transparent);
+}
+
+/* The focus ring has to survive on every field. A fixed ink outline vanished
+   on indigo (1.59:1) and peacock (2.79:1); following --screen-ink puts it at
+   4.6:1 or better everywhere, and the ink halo behind it keeps it visible
+   where the ring itself is light. */
+#app[data-screen="words"] :focus-visible,
+#app[data-screen="quiz"]  :focus-visible,
+#app[data-screen="done"]  :focus-visible{
+  outline:3px solid var(--screen-ink); outline-offset:3px;
+  box-shadow:0 0 0 6px color-mix(in srgb, var(--field) 70%, var(--ink));
+}
 
 /* Screens cross-fade and settle rather than snapping, so a child can follow
    where the thing they tapped went. Short enough not to feel like waiting.
@@ -281,10 +299,10 @@
    with red-green colour blindness — and on the haldi field neither read at
    all. A plate plus a glyph says which is which without depending on colour,
    and stays quiet enough that a child chasing the picture skips over it. */
-.wmark{ background:rgba(255,255,255,.18) }
+.wmark{ background:rgba(255,255,255,.24) }
 .wmark::after{
   content:''; width:22px; height:22px;
-  background:currentColor; color:var(--card); opacity:.92;
+  background:currentColor; color:var(--screen-ink); opacity:.92;
   -webkit-mask:var(--mark-glyph) center/contain no-repeat;
   mask:var(--mark-glyph) center/contain no-repeat;
   --mark-glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4.5 4.5L19 7'/%3E%3C/svg%3E");
@@ -339,15 +357,18 @@
 }
 .breathe i{ width:60px; height:60px; border-radius:50%; background:var(--haldi); display:block }
 /* deliberate anti-affordance: tiny, grey, and prefixed "Grown-up:" */
+/* 12px of padding gave this a 38px box — under the 44px floor, on a control
+   a tired parent taps one-handed. The text stays small; the target does not. */
 .link-grown{
-  font:500 12px var(--face-ui); color:var(--ink-4);
-  text-decoration:underline; padding:12px; cursor:pointer;
+  font:500 12px var(--face-ui); color:var(--ink-3);
+  text-decoration:underline; padding:16px 12px; min-height:44px; cursor:pointer;
+  display:inline-flex; align-items:center;
 }
 /* leaf on a leaf field is an invisible button */
 #app[data-screen="done"] .btn-big--leaf{
   background:var(--card); color:var(--leaf); box-shadow:var(--sh-track);
 }
-#app[data-screen="done"] .link-grown{ color:rgba(255,255,255,.76) }
+#app[data-screen="done"] .link-grown{ color:var(--screen-ink) }
 .link-grown[hidden]{ display:none }
 
 /* gate */

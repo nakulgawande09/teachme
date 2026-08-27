@@ -143,7 +143,7 @@ button,
   position:relative; overflow:hidden; display:flex; align-items:center; gap:var(--s4);
   height:clamp(108px,17vh,196px); padding:0 clamp(14px,4vw,22px);
   border-radius:var(--r-track); background:var(--track-color);
-  box-shadow:var(--sh-track); color:var(--card);
+  box-shadow:var(--sh-track); color:var(--track-ink);
   width:100%; text-align:left;
   /* grow into the free height so four cards fill the field, never shrink
      below their own height so the list still scrolls when they don't fit */
@@ -163,12 +163,12 @@ button,
 .track-card__speaker{
   position:absolute; right:clamp(12px,3.5vw,20px); top:50%;
   width:48px; height:48px; margin-top:-24px; z-index:1;
-  background:rgba(255,255,255,.22); color:var(--card); box-shadow:none;
+  background:rgba(255,255,255,.28); color:var(--track-ink); box-shadow:none;
 }
 .track-card__speaker:active{ transform:translateY(2px); box-shadow:none }
 .track-card__glyph{
   font:400 clamp(62px,17vw,104px)/1 var(--track-font);
-  color:var(--card); width:clamp(78px,22vw,120px); text-align:center; flex:none;
+  color:var(--track-ink); width:clamp(78px,22vw,120px); text-align:center; flex:none;
   position:relative; z-index:1;
 }
 .track-card__body{
@@ -177,12 +177,12 @@ button,
 }
 /* fade tail — "there is more inside", at a glance and without a word */
 .track-card__preview{ display:flex; gap:var(--s2) }
-.track-card__preview span{ font:400 clamp(24px,7vw,36px)/1 var(--track-font); color:var(--card) }
-.track-card__preview span:nth-child(1){ opacity:.62 }
-.track-card__preview span:nth-child(2){ opacity:.46 }
-.track-card__preview span:nth-child(3){ opacity:.32 }
+.track-card__preview span{ font:400 clamp(24px,7vw,36px)/1 var(--track-font); color:var(--track-ink) }
+.track-card__preview span:nth-child(1){ opacity:.80 }
+.track-card__preview span:nth-child(2){ opacity:.66 }
+.track-card__preview span:nth-child(3){ opacity:.52 }
 .track-card__lines{
-  font:400 clamp(15px,4.2vw,21px)/1.35 var(--face-deva); color:var(--card); opacity:.72;
+  font:400 clamp(15px,4.2vw,21px)/1.35 var(--face-deva); color:var(--track-ink); opacity:.9;
 }
 /* The rule was the card's only colour; the field is now the colour itself. */
 .track-card__rule{ display:none }
@@ -195,7 +195,7 @@ button,
   pointer-events:none; opacity:0; z-index:2;
 }
 /* on a colour field a haldi ring disappears — most of all on the haldi card */
-.track-card .finger{ background:rgba(255,255,255,.34); border-color:var(--card) }
+.track-card .finger{ background:color-mix(in srgb, var(--track-ink) 30%, transparent); border-color:var(--track-ink) }
 /* Clear of BOTH the glyph and the speaker: it points at the open field in
    between, so it never sits on top of the letter it is pointing at or on the
    one control the child might already be reaching for. */
@@ -235,7 +235,7 @@ button,
 /* Colour comes from the TRACK, not the card index. The shipped app cycled
    five fills by position, which is what read as clip art: the colour carried
    no meaning. */
-.card__glyph{ font:400 clamp(40px,10vw,88px)/1 var(--track-font); color:var(--track-color) }
+.card__glyph{ font:400 clamp(40px,10vw,88px)/1 var(--track-font); color:var(--track-mark) }
 .card__glyph--word{ font-size:clamp(20px,5.6vw,30px) }
 .card[data-done="1"]{ border:2px solid var(--haldi) }
 .card__done{
@@ -268,7 +268,7 @@ button,
   width:16px; height:16px; border-radius:50%;
   border:2px solid var(--bead-off); background:transparent;
 }
-.bead[data-on="1"]{ background:var(--haldi); border-color:var(--haldi) }
+.bead[data-on="1"]{ background:var(--haldi); border-color:var(--haldi-ink) }
 .bead[data-current="1"]{ box-shadow:0 0 0 5px var(--halo) }
 
 /* ── the retry chip: green, phrased as an invitation, never red ────────── */
@@ -297,19 +297,31 @@ button,
   width:12px; height:12px; border-radius:50%; display:block;
   border:2px solid var(--bead-off); background:transparent;
 }
-.dots i[data-on="1"]{ background:var(--haldi); border-color:var(--haldi) }
+/* A haldi fill is 1.91:1 on paper — too faint to be a shape on its own.
+   The darker edge is what makes the filled dot readable; the face stays gold. */
+.dots i[data-on="1"]{ background:var(--haldi); border-color:var(--haldi-ink) }
 .dots i[data-current="1"]{ box-shadow:0 0 0 4px var(--halo) }
 .dots--lg{ margin-top:var(--s4) }
 .dots--lg i{ width:16px; height:16px }
 
 .track-card__today{ display:flex; align-items:center; gap:10px }
 .track-card__today span{
-  font:400 clamp(24px,7vw,34px)/1 var(--track-font); color:var(--card); opacity:.72;
+  font:400 clamp(24px,7vw,34px)/1 var(--track-font); color:var(--track-ink); opacity:.80;
 }
-.track-card__today span[data-done="1"]{ opacity:.34 }
+/* A finished letter recedes but must not disappear: opacity alone drops it to
+   1.9:1, and opacity alone is also the wrong signal for a low-vision reader.
+   It keeps a readable weight and gets a tick underneath it instead. */
+.track-card__today span[data-done="1"]{ opacity:.7; position:relative }
+.track-card__today span[data-done="1"]::after{
+  content:''; position:absolute; left:50%; bottom:-7px; width:12px; height:6px;
+  margin-left:-6px; border:0 solid currentColor; border-width:0 0 2px 2px;
+  transform:rotate(-45deg);
+}
 
 /* the words card: pictures where the letters cards have glyphs */
-.track-card--words{ --track-color:var(--haldi) }
+/* --track-ink travels with --track-color, always. Setting the colour alone
+   left this card writing cream on haldi at 2.15:1. */
+.track-card--words{ --track-color:var(--haldi); --track-ink:var(--on-haldi); --track-mark:var(--haldi-ink) }
 .wcard__art{
   width:clamp(78px,22vw,120px); flex:none; text-align:center;
   font-size:clamp(48px,13vw,76px); line-height:1;
@@ -325,7 +337,7 @@ button,
 .wcard__today span[data-done="1"]{ opacity:.42 }
 .track-card__label{
   font:500 11px var(--face-ui); letter-spacing:.12em; text-transform:uppercase;
-  color:var(--card); opacity:.76;
+  color:var(--track-ink);
 }
 
 /* ── recall ────────────────────────────────────────────────────────────── */
@@ -343,11 +355,11 @@ button,
    becomes the white hero instead — the one thing on a recall screen a child
    who cannot read is meant to press first. */
 .quiz__prompt .btn-big--haldi{
-  background:var(--card); color:var(--track-color); box-shadow:var(--sh-track);
+  background:var(--card); color:var(--track-mark); box-shadow:var(--sh-track);
   width:118px; height:118px; border-radius:38px;
 }
 #app[data-screen="quiz"] .quiz__prompt .btn-round--haldi{
-  background:var(--card); color:var(--track-color); box-shadow:var(--sh-track);
+  background:var(--card); color:var(--track-mark); box-shadow:var(--sh-track);
 }
 /* A grid, not a wrapping row: three fixed-width cards never fit a phone, so
    every 3-card question rendered as two-on-top-one-below — and the lone card
@@ -368,7 +380,7 @@ button,
   transition:transform var(--press) ease, box-shadow var(--press) ease, opacity 300ms ease;
 }
 .qcard:active{ transform:translateY(2px); box-shadow:var(--sh-press) }
-.qcard__glyph{ font:400 clamp(56px,17vw,88px)/1 var(--track-font); color:var(--track-color) }
+.qcard__glyph{ font:400 clamp(56px,17vw,88px)/1 var(--track-font); color:var(--track-mark) }
 .qcard__art{ font-size:clamp(48px,15vw,76px); line-height:1 }
 /* A wrong tap shakes once and SETTLES VISIBLY: the card stays dimmed with a
    muted edge so the outcome survives reduced-motion (where the shake never
@@ -424,5 +436,5 @@ button,
 .ribbon i:nth-child(3){ background:var(--leaf) }
 .ribbon i:nth-child(4){ background:var(--peacock) }
 .ribbon i:nth-child(5){ background:var(--indigo) }
-/* the leaf bar on a leaf field is a gap in the ribbon */
-#app[data-screen="done"] .ribbon i:nth-child(3){ background:var(--card) }
+/* a bar the same colour as the field it sits on is a gap in the ribbon */
+#app[data-screen="done"] .ribbon i:nth-child(3){ background:var(--screen-ink) }
